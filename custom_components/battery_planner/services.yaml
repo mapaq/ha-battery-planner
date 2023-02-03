@@ -1,0 +1,15 @@
+reschedule:
+  name: Reschedule Battery
+  description: Creates a new schedule for the battery based on electricity price
+  fields:
+    battery_soc:
+      name: Battery State of Charge
+      description: The current state of charge (SoC) of the battery
+      # Whether or not field is required (default = false)
+      required: true
+      # Advanced fields are only shown when the advanced mode is enabled for the user (default = false)
+      advanced: false
+      # Example value that can be passed for this field
+      example: 0.05
+      # The default field value
+      default: 0.05
