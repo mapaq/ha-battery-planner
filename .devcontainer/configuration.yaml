@@ -10,7 +10,7 @@ battery_planner:
 sensor:
   platform: battery_planner
   currency: SEK
-  energy_unit: kWh
+  power_unit: W
 
 # If you need to debug uncomment the line below (doc: https://www.home-assistant.io/integrations/debugpy/)
 # debugpy:

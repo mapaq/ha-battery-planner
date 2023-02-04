@@ -1,18 +1,20 @@
 """Sensor to hold the schedule data for Battery Planner"""
+
 import logging
 
-import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
+import homeassistant.helpers.config_validation as cv
+from homeassistant.core import HomeAssistant, Config
 from homeassistant.components.sensor import PLATFORM_SCHEMA
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
-
-# Import sensor entity and classes.
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
     SensorStateClass,
 )
+from homeassistant.const import POWER_WATT
 
+from . import BatteryPlanner
 from . import DOMAIN, EVENT_NEW_DATA
 
 _LOGGER = logging.getLogger(__name__)
@@ -20,70 +22,65 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
         vol.Optional("unique_id", default="battery_schedule"): cv.string,
-        vol.Optional("friendly_name", default="Battery Schedule"): cv.string,
+        vol.Optional("friendly_name", default="Battery Charge Schedule"): cv.string,
         vol.Optional("currency", default="SEK"): cv.string,
-        vol.Optional("energy_unit", default="kWh"): cv.string,
+        vol.Optional("power_unit", default=POWER_WATT): cv.string,
     }
 )
 
 
-def _dry_setup(hass, config, add_devices):
+def _dry_setup(hass: HomeAssistant, config: Config, add_devices):
     """Setup the platform using yaml"""
-    _LOGGER.debug("Setting up Battery Schedule Sensor")
-    _LOGGER.debug("Dumping config %r", config)
-    unique_id = config.get("unique_id")
-    friendly_name = config.get("friendly_name")
-    currency = config.get("currency")
-    energy_unit = config.get("energy_unit")
-    battery_scheduler = hass.data[DOMAIN]
+    _LOGGER.debug("Setting up Battery Schedule Sensor with config %r", config)
     sensor = BatteryScheduleSensor(
-        unique_id,
-        friendly_name,
-        currency,
-        energy_unit,
-        battery_scheduler,
-        hass,
+        unique_id=config.get("unique_id"),
+        friendly_name=config.get("friendly_name"),
+        currency=config.get("currency"),
+        power_unit=config.get("power_unit"),
+        battery_planner=hass.data[DOMAIN],
+        hass=hass,
     )
     add_devices([sensor])
 
 
-async def async_setup_platform(hass, config, add_devices, discovery_info=None) -> None:
-    """Setup platform"""
+async def async_setup_platform(
+    hass: HomeAssistant, config: Config, add_devices, discovery_info=None
+) -> None:
+    """Setup the sensor from yaml settings"""
+    _LOGGER.debug("Setup the sensor from yaml")
     _dry_setup(hass, config, add_devices)
-    return True
-
-
-async def async_setup_entry(hass, config_entry, async_add_devices):
-    """Setup sensor platform for the ui"""
-    config = config_entry.data
-    _dry_setup(hass, config, async_add_devices)
     return True
 
 
 class BatteryScheduleSensor(SensorEntity):
     """Sensor data"""
 
-    # FIXME: Change device class and state class
-    _attr_device_class = SensorDeviceClass.MONETARY
-    # _attr_state_class = SensorStateClass.MEASUREMENT
-    # https://www.home-assistant.io/integrations/sensor/
+    _unique_id: str = None
+    _friendly_name: str = None
+    _currency: str = None
+    _power_unit: str = None
+    _battery_planner: BatteryPlanner = None
+    _hass: HomeAssistant = None
 
     def __init__(
         self,
         unique_id,
         friendly_name,
         currency,
-        energy_unit,
+        power_unit,
         battery_planner,
         hass,
     ) -> None:
         self._unique_id = unique_id
         self._friendly_name = friendly_name
         self._currency = currency
-        self._energy_unit = energy_unit
+        self._power_unit = power_unit
         self._battery_planner = battery_planner
         self._hass = hass
-        self._attr_force_update = True
+
+        self._attr_device_class = SensorDeviceClass.POWER
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_native_unit_of_measurement = power_unit
 
         # Holds the data for today and tomorrow
         self._schedule_today = None
@@ -99,7 +96,7 @@ class BatteryScheduleSensor(SensorEntity):
 
     @property
     def name(self) -> str:
-        return self._unique_id
+        return self._friendly_name
 
     @property
     def should_poll(self) -> bool:
@@ -114,19 +111,14 @@ class BatteryScheduleSensor(SensorEntity):
     @property
     def unit(self) -> str:
         """Unit"""
-        return self._energy_unit
+        return self._power_unit
 
     @property
-    def unit_of_measurement(self) -> str:  # FIXME
-        """Return the unit of measurement this sensor expresses itself in."""
-        return "%s/%s" % (self._currency, self._energy_unit)
-
-    @property
-    def unique_id(self):
+    def unique_id(self) -> str:
         return self._unique_id
 
     @property
-    def device_info(self):
+    def device_info(self) -> dict[str:object]:
         return {
             "identifiers": {(DOMAIN, self.unique_id)},
             "name": self.name,
@@ -134,10 +126,10 @@ class BatteryScheduleSensor(SensorEntity):
         }
 
     @property
-    def extra_state_attributes(self) -> dict:
+    def extra_state_attributes(self) -> dict[str, object]:
         return {
             "currency": self._currency,
-            "unit": self._energy_unit,
+            "unit": self._power_unit,
         }
 
     async def _update(self) -> None:
@@ -146,7 +138,7 @@ class BatteryScheduleSensor(SensorEntity):
         self._attr_native_value = await self._battery_planner.get_active_schedule()
         self.async_write_ha_state()
 
-    async def async_added_to_hass(self):
+    async def async_added_to_hass(self) -> None:
         """Connect to dispatcher listening for entity data notifications."""
         await super().async_added_to_hass()
         _LOGGER.debug("called async_added_to_hass %s", self.name)

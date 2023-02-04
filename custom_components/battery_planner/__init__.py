@@ -1,17 +1,12 @@
 """Battery Planner integration"""
 import logging
 
-import voluptuous as vol
-from homeassistant.core import Config, HomeAssistant
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant, Config
 from homeassistant.helpers.dispatcher import async_dispatcher_send
-from homeassistant.util import dt as dt_utils
 
 DOMAIN = "battery_planner"
 _LOGGER = logging.getLogger(__name__)
 EVENT_NEW_DATA = "battery_schedule_received"
-
-CONFIG_SCHEMA = vol.Schema({DOMAIN: vol.Schema({})}, extra=vol.ALLOW_EXTRA)
 
 NAME = DOMAIN
 VERSION = "0.1.0"
@@ -35,8 +30,6 @@ class BatteryPlanner:
         self._hass = hass
         self._last_tick = None
         self._active_schedule = None
-        self.currency = []
-        self.listeners = []
 
     async def reschedule(self, battery_state_of_charge: float = None) -> None:
         """Get future prices and create new schedule"""
@@ -55,14 +48,14 @@ class BatteryPlanner:
         else:
             _LOGGER.error("Could not fetch battery charge schedule")
 
-    async def get_active_schedule(self, refresh: bool = False):
+    async def get_active_schedule(self, refresh: bool = False) -> int:
         """Get the currently active schedule from API"""
         if self._active_schedule is None or refresh is True:
             return await self._get_active_schedule()
         return self._active_schedule
 
-    async def _get_active_schedule(self):
-        response = 12.03
+    async def _get_active_schedule(self) -> int:
+        response = 1700
         if response is not None:
             self._active_schedule = response
             async_dispatcher_send(self._hass, EVENT_NEW_DATA)
@@ -75,7 +68,6 @@ async def _dry_setup(hass: HomeAssistant, config: Config) -> bool:
         battery_planner = BatteryPlanner(hass)
         hass.data[DOMAIN] = battery_planner
         _LOGGER.debug("Added %s to hass.data", DOMAIN)
-
     return True
 
 
@@ -93,7 +85,7 @@ async def async_setup(hass: HomeAssistant, config: Config) -> bool:
 
         """
         _LOGGER.debug("%s: service_call_reschedule", DOMAIN)
-        battery_soc = service_call.data.get("battery_soc", 0)
+        battery_soc: float = service_call.data.get("battery_soc", 0.0)
         battery_planner: BatteryPlanner = hass.data[DOMAIN]
         await battery_planner.reschedule(battery_soc)
 
