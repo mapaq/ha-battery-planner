@@ -1,12 +1,15 @@
 """Battery Planner integration"""
+
 import logging
 
 from homeassistant.core import HomeAssistant, Config
-from homeassistant.helpers.dispatcher import async_dispatcher_send
 
-DOMAIN = "battery_planner"
+from .const import DOMAIN
+from .battery_planner import BatteryPlanner
+
+
 _LOGGER = logging.getLogger(__name__)
-EVENT_NEW_DATA = "battery_schedule_received"
+
 
 NAME = DOMAIN
 VERSION = "0.1.0"
@@ -21,45 +24,6 @@ If you have any issues with this you need to open an issue here:
 {ISSUEURL}
 -------------------------------------------------------------------
 """
-
-
-class BatteryPlanner:
-    """Main class to handle data and push updates"""
-
-    def __init__(self, hass: HomeAssistant):
-        self._hass = hass
-        self._last_tick = None
-        self._active_schedule = None
-
-    async def reschedule(self, battery_state_of_charge: float = None) -> None:
-        """Get future prices and create new schedule"""
-        _LOGGER.debug(
-            "Rescheduling battery, battery state of charge = %s",
-            battery_state_of_charge,
-        )
-        await self._reschedule()
-
-    async def _reschedule(self) -> None:
-        _LOGGER.debug("calling _reschedule")
-
-        active_schedule = await self._get_active_schedule()
-        if active_schedule:
-            self._active_schedule = active_schedule
-        else:
-            _LOGGER.error("Could not fetch battery charge schedule")
-
-    async def get_active_schedule(self, refresh: bool = False) -> int:
-        """Get the currently active schedule from API"""
-        if self._active_schedule is None or refresh is True:
-            return await self._get_active_schedule()
-        return self._active_schedule
-
-    async def _get_active_schedule(self) -> int:
-        response = 1700
-        if response is not None:
-            self._active_schedule = response
-            async_dispatcher_send(self._hass, EVENT_NEW_DATA)
-        return self._active_schedule
 
 
 async def _dry_setup(hass: HomeAssistant, config: Config) -> bool:

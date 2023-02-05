@@ -1,6 +1,7 @@
 """Sensor to hold the schedule data for Battery Planner"""
 
 import logging
+from datetime import datetime
 
 import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
@@ -14,8 +15,9 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.const import POWER_WATT
 
-from . import BatteryPlanner
-from . import DOMAIN, EVENT_NEW_DATA
+from .battery_planner import BatteryPlanner
+from .charge_schedule import ChargeSchedule
+from .const import DOMAIN, EVENT_NEW_DATA
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -62,6 +64,9 @@ class BatteryScheduleSensor(SensorEntity):
     _battery_planner: BatteryPlanner = None
     _hass: HomeAssistant = None
 
+    _schedule: ChargeSchedule = None
+    _expected_yield: float = None
+
     def __init__(
         self,
         unique_id,
@@ -81,18 +86,6 @@ class BatteryScheduleSensor(SensorEntity):
         self._attr_device_class = SensorDeviceClass.POWER
         self._attr_state_class = SensorStateClass.MEASUREMENT
         self._attr_native_unit_of_measurement = power_unit
-
-        # Holds the data for today and tomorrow
-        self._schedule_today = None
-        self._schedule_tomorrow = None
-
-        # Values for the day
-        self._charge_cost = None
-        self._discharge_earnings = None
-        self._arbitrage_return = None
-
-        # To control the updates.
-        self._last_tick = None
 
     @property
     def name(self) -> str:
@@ -129,13 +122,16 @@ class BatteryScheduleSensor(SensorEntity):
     def extra_state_attributes(self) -> dict[str, object]:
         return {
             "currency": self._currency,
-            "unit": self._power_unit,
+            "schedule": str(self._schedule),
+            "expected_yield": self._expected_yield,
         }
 
     async def _update(self) -> None:
         """Callback to update the schedule sensor"""
         _LOGGER.debug("_update")
-        self._attr_native_value = await self._battery_planner.get_active_schedule()
+        self._schedule = await self._battery_planner.get_active_schedule()
+        self._attr_native_value = self._schedule.get_power(datetime.now())
+        self._expected_yield = self._schedule.get_expected_yield()
         self.async_write_ha_state()
 
     async def async_added_to_hass(self) -> None:
