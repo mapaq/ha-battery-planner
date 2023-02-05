@@ -40,18 +40,18 @@ async def async_setup(hass: HomeAssistant, config: Config) -> bool:
     _LOGGER.debug("%s: async_setup", DOMAIN)
 
     async def service_call_reschedule(service_call):
-        """Get future prices and create new schedule
-        Example call:
+        """Get future prices and create new schedule"""
 
-        service: "battery_planner.reschedule"
-        data:
-          battery_soc: 7
-
-        """
         _LOGGER.debug("%s: service_call_reschedule", DOMAIN)
         battery_soc: float = service_call.data.get("battery_soc", 0.0)
+        prices_today: float = service_call.data.get("prices_today", None)
+        prices_tomorrow: float = service_call.data.get("prices_tomorrow", None)
         battery_planner: BatteryPlanner = hass.data[DOMAIN]
-        await battery_planner.reschedule(battery_soc)
+        await battery_planner.reschedule(
+            battery_state_of_charge=battery_soc,
+            prices_today=prices_today,
+            prices_tomorrow=prices_tomorrow,
+        )
 
     hass.services.async_register(DOMAIN, "reschedule", service_call_reschedule)
 

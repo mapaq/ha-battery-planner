@@ -1,35 +1,34 @@
 {
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
+    "version": "0.1.0",
     "configurations": [
-      {
-        // Example of attaching to local debug server
-        "name": "Python: Attach Local",
-        "type": "python",
-        "request": "attach",
-        "port": 9123,
-        "host": "localhost",
-        "pathMappings": [
-          {
-            "localRoot": "${workspaceFolder}",
-            "remoteRoot": "."
-          }
-        ]
-      },
-      {
-        // Example of attaching to production server
-        "name": "Python: Attach Remote",
-        "type": "python",
-        "request": "attach",
-        "port": 8123,
-        "host": "homeassistant.local",
-        "pathMappings": [
-          {
-            "localRoot": "${workspaceFolder}",
-            "remoteRoot": "/usr/src/homeassistant"
-          }
-        ]
-      }
+        {
+            // Example of attaching to local debug server
+            "name": "Python: Attach Local",
+            "type": "python",
+            "request": "attach",
+            "port": 9123,
+            "host": "localhost",
+            "pathMappings": [
+                {
+                    "localRoot": "${workspaceFolder}",
+                    "remoteRoot": "."
+                }
+            ]
+        },
+        {
+            // Example of attaching to production server
+            "name": "Python: Attach Remote",
+            "type": "python",
+            "request": "attach",
+            "port": 8123,
+            "host": "homeassistant.local",
+            "pathMappings": [
+                {
+                    "localRoot": "${workspaceFolder}",
+                    "remoteRoot": "/usr/src/homeassistant"
+                }
+            ]
+        }
     ]
-  }
-  
+}

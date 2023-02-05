@@ -5,11 +5,21 @@ reschedule:
     battery_soc:
       name: Battery State of Charge
       description: The current state of charge (SoC) of the battery
-      # Whether or not field is required (default = false)
       required: true
-      # Advanced fields are only shown when the advanced mode is enabled for the user (default = false)
       advanced: false
-      # Example value that can be passed for this field
       example: 0.05
-      # The default field value
       default: 0.05
+    prices_today:
+      name: Electricity prices today
+      description: Electricity prices of today as a list with 24 items, one price per hour
+      required: true
+      advanced: false
+      example: "{{ state_attr('sensor.nordpool', 'today') }}"
+      default: "{{ state_attr('sensor.nordpool', 'today') }}"
+    prices_tomorrow:
+      name: Electricity prices tomorrow
+      description: Electricity prices of tomorrow as a list with 24 items, one price per hour
+      required: true
+      advanced: false
+      example: "{{ state_attr('sensor.nordpool', 'tomorrow') }}"
+      default: "{{ state_attr('sensor.nordpool', 'tomorrow') }}"

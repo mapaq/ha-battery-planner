@@ -1,12 +1,12 @@
-"""Charge Schedule"""
+"""Charge Plan"""
 
 import logging
-from datetime import datetime
+from datetime import datetime, time
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class ChargeSchedule:
+class ChargePlan:
     """Data class to hold power and price information for each hour"""
 
     KEY_POWER = "power"
@@ -26,16 +26,16 @@ class ChargeSchedule:
             readable_entry[hour] = entry
         return str(readable_entry)
 
-    def add(self, hour_dt: datetime, power: int, price: float = None) -> None:
+    def add(self, hour: datetime, power: int, price: float = None) -> None:
         """Add a new hour to the charge plan"""
         entry = {}
         entry[self.KEY_POWER] = power
         entry[self.KEY_PRICE] = price
-        self._schedule[hour_dt.strftime("%Y-%m-%dT%H")] = entry
+        self._schedule[hour_iso_string(hour)] = entry
 
-    def get(self, hour_dt: datetime) -> dict[str : int | float]:
+    def get(self, hour: datetime) -> dict[str : int | float]:
         """Get power and price for the hour in a datetime object"""
-        hour = hour_dt.strftime("%Y-%m-%dT%H")
+        hour = hour_iso_string(hour)
         if hour not in self._schedule:
             _LOGGER.error(
                 "Tried to get scheduled power value that is not scheduled for hour %s",
@@ -48,8 +48,8 @@ class ChargeSchedule:
         """Get the scheduled power value for the given hour"""
         return self.get(hour)[self.KEY_POWER]
 
-    def get_schedules(self) -> dict[datetime, dict]:
-        """Get schedules"""
+    def get_scheduled_hours(self) -> dict[str, dict[str : int | float]]:
+        """Get all scheduled hours"""
         return self._schedule
 
     def get_expected_yield(self) -> float:
@@ -61,3 +61,8 @@ class ChargeSchedule:
             # TODO: Make power unit and price/energy unit adjustable by sensor settings in yaml
             expected_yield += (power / 1000) * price
         return expected_yield
+
+
+def hour_iso_string(hour: datetime) -> str:
+    """Get string representation of the hour as ISO format"""
+    return datetime.combine(hour.date(), time(hour=hour.hour)).isoformat()

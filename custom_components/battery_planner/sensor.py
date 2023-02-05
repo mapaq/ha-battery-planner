@@ -16,7 +16,7 @@ from homeassistant.components.sensor import (
 from homeassistant.const import POWER_WATT
 
 from .battery_planner import BatteryPlanner
-from .charge_schedule import ChargeSchedule
+from .charge_plan import ChargePlan
 from .const import DOMAIN, EVENT_NEW_DATA
 
 _LOGGER = logging.getLogger(__name__)
@@ -64,7 +64,7 @@ class BatteryScheduleSensor(SensorEntity):
     _battery_planner: BatteryPlanner = None
     _hass: HomeAssistant = None
 
-    _schedule: ChargeSchedule = None
+    _schedule: ChargePlan = None
     _expected_yield: float = None
 
     def __init__(
