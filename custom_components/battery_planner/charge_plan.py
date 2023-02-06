@@ -21,13 +21,16 @@ class ChargePlan:
         return str(self._schedule)
 
     def __str__(self):
-        readable_entry = {}
+        readable_entry = []
         for hour, entry in self._schedule.items():
-            readable_entry[hour] = entry
-        return str(readable_entry)
+            readable_entry.append(f"{hour}: {entry}")
+        return str.join("\n", readable_entry)
 
     def add(self, hour: datetime, power: int, price: float = None) -> None:
-        """Add a new hour to the charge plan"""
+        """Add a new hour to the charge plan
+        hour - The hour as a datetime object
+        power - (W) Negative value means charge, positive means discharge
+        price - The electricity price for the given hour in SEK/kWh or other currency/energy"""
         entry = {}
         entry[self.KEY_POWER] = power
         entry[self.KEY_PRICE] = price
@@ -35,14 +38,18 @@ class ChargePlan:
 
     def get(self, hour: datetime) -> dict[str : int | float]:
         """Get power and price for the hour in a datetime object"""
-        hour = hour_iso_string(hour)
-        if hour not in self._schedule:
-            _LOGGER.error(
-                "Tried to get scheduled power value that is not scheduled for hour %s",
-                hour,
+        hour_iso = hour_iso_string(hour)
+        if hour_iso not in self._schedule:
+            _LOGGER.warning(
+                "Tried to get value for hour (%s) that is not scheduled. "
+                "Returning 0 power and 0.0 price",
+                hour_iso,
             )
-            return None
-        return self._schedule[hour]
+            entry = {}
+            entry[self.KEY_POWER] = 0
+            entry[self.KEY_PRICE] = 0.0
+            return entry
+        return self._schedule[hour_iso]
 
     def get_power(self, hour: datetime) -> int:
         """Get the scheduled power value for the given hour"""

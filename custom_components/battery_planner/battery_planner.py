@@ -1,6 +1,8 @@
 """Battery Planner main class"""
 
 import logging
+import json
+import importlib
 from datetime import datetime, timedelta, time
 
 from homeassistant.core import HomeAssistant
@@ -9,8 +11,11 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 from .const import EVENT_NEW_DATA
 from .charge_plan import ChargePlan
 from .battery import Battery
+from .battery_api_interface import BatteryApiInterface
 
 _LOGGER = logging.getLogger(__name__)
+
+API_PATH = "custom_components.battery_planner.api"
 
 
 class BatteryPlanner:
@@ -24,6 +29,7 @@ class BatteryPlanner:
     _hass: HomeAssistant
     _active_schedule: ChargePlan
     _battery: Battery
+    _battery_api: BatteryApiInterface
 
     def __init__(self, hass: HomeAssistant):
         self._hass = hass
@@ -35,6 +41,8 @@ class BatteryPlanner:
             max_charge_power=3000,
             max_discharge_power=3000,
         )
+        self._battery_api = create_api_instance_from_secrets_file()
+        self._battery_api.login()
 
     async def reschedule(
         self,
@@ -51,9 +59,11 @@ class BatteryPlanner:
         hourly_prices = map_prices_to_hour(prices_today, prices_tomorrow)
         charge_plan = self._create_charge_plan(hourly_prices)
 
-        # TODO: Remove and make POST call to solarnet
-        for hour, entry in charge_plan.get_scheduled_hours().items():
-            _LOGGER.error(hour + str(entry))
+        schedule_succeeded = await self._battery_api.schedule_battery(charge_plan)
+        if schedule_succeeded:
+            _LOGGER.info("Battery was scheduled with a new charge plan")
+        else:
+            _LOGGER.error("Failed to schedule battery with new charge plan")
         await self.get_active_schedule(refresh=True)
 
     async def get_active_schedule(self, refresh: bool = False) -> ChargePlan:
@@ -63,16 +73,12 @@ class BatteryPlanner:
         return self._active_schedule
 
     async def _get_active_schedule(self) -> ChargePlan:
-        # TODO: Remove and make GET call to solarnet to get active schedule
-        schedule = ChargePlan()
-        schedule.add(datetime.now(), -1000, 1.75)
-        schedule.add(datetime.now().replace(hour=1), 1000, 2.75)
-        response = schedule
-        if response is not None:
+        active_charge_plan = await self._battery_api.get_active_charge_plan()
+        if isinstance(active_charge_plan, ChargePlan):
             async_dispatcher_send(self._hass, EVENT_NEW_DATA)
         else:
-            _LOGGER.error("Could not fetch battery charge schedule")
-        return response
+            _LOGGER.error("Could not fetch the active charge plan from the battery")
+        return active_charge_plan
 
     def _create_charge_plan(
         self,
@@ -176,3 +182,20 @@ def map_prices_to_hour(
         hourly_prices[hour] = price
         hour += timedelta(hours=1)
     return hourly_prices
+
+
+def create_api_instance_from_secrets_file():
+    """Create battery api instance from the api privided in secrets file"""
+    secrets_json = get_secrets()
+    api_name = secrets_json.get("api")
+    api_module = importlib.import_module(f"{API_PATH}.{api_name}.{api_name}")
+    cls = getattr(api_module, "ExampleBatteryApi")
+    battery_api: BatteryApiInterface = cls(secrets_json)
+    return battery_api
+
+
+def get_secrets() -> dict[str:str]:
+    """Get name of the API to be used, specified in the secrets file"""
+    secrets_path = "custom_components/battery_planner/secrets.json"
+    with open(secrets_path, encoding="utf-8") as secrets_file:
+        return json.load(secrets_file)

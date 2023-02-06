@@ -41,4 +41,7 @@
 		// Create ~/battery_planner_config directory and rebuild container
 		"source=${localEnv:HOME}/battery_planner_config,target=/config,type=bind"
 	]
+	// Set the correct timezone in the container:
+	// sudo rm -rf /etc/localtime
+	// sudo ln -s /usr/share/zoneinfo/Europe/Stockholm /etc/localtime
 }

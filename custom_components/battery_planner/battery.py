@@ -8,18 +8,17 @@ _LOGGER = logging.getLogger(__name__)
 class Battery:
     """Data class to hold information and charge level of the fictive battery
 
-    capacity (Wh) - Total energy capacity of the battery
-    max_charge_power (W) - Maximum allowed charge power
-    max_discharge_power (W) - Maximum allowed discharge power
-    soc_limit (%) - Minimum allowed state of charge, e.g. 5% = 0.05
-    soc (%) - The current state of charge of the battery, e.g. 100% = 1.0"""
+    capacity - (Wh) Total energy capacity of the battery
+    max_charge_power - (W) Maximum allowed charge power
+    max_discharge_power - (W) Maximum allowed discharge power
+    soc_limit - (%) Minimum allowed state of charge, e.g. 5% = 0.05"""
 
-    capacity: int = None
-    _soc_limit: float = None
-    _max_charge_power: int = None
-    _max_discharge_power: int = None
-    _soc: float = 0.0
-    energy: int = 0
+    capacity: int
+    _soc_limit: float
+    _max_charge_power: int
+    _max_discharge_power: int
+    _soc: float
+    energy: int
 
     def __init__(
         self,
@@ -32,6 +31,7 @@ class Battery:
         self._max_charge_power = max_charge_power
         self._max_discharge_power = max_discharge_power
         self._soc_limit = soc_limit
+        self.set_soc(0.0)
 
     def __repr__(self):
         return self.__str__()
@@ -46,7 +46,8 @@ class Battery:
         return str(readable)
 
     def set_soc(self, soc: float):
-        """Set state of charge and calculate the energy level of the battery"""
+        """Set state of charge and calculate the energy level of the battery
+        soc - (%) The current state of charge of the battery, e.g. 100% = 1.0"""
         self._soc = soc
         self.energy = int(self.capacity * soc)
 

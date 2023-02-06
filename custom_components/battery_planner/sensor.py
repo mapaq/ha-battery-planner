@@ -128,7 +128,7 @@ class BatteryScheduleSensor(SensorEntity):
 
     async def _update(self) -> None:
         """Callback to update the schedule sensor"""
-        _LOGGER.debug("_update")
+        _LOGGER.debug("Update sensor")
         self._schedule = await self._battery_planner.get_active_schedule()
         self._attr_native_value = self._schedule.get_power(datetime.now())
         self._expected_yield = self._schedule.get_expected_yield()

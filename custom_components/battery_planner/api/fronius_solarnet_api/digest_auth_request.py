@@ -11,10 +11,10 @@ class DigestAuthRequest:
     For some reason the HTTPDigestAuth from requests.auth does
     not work with Fronius Solarnet. That's why this class was created."""
 
-    _host: str = None
-    _username: str = None
-    _password: str = None
-    _auth_data: dict[str, str] = None
+    _host: str
+    _username: str
+    _password: str
+    _auth_data: dict[str, str]
 
     def __init__(self, host: str, username: str, password: str):
         self._host = host
