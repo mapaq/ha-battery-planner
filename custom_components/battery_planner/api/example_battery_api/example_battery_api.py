@@ -24,9 +24,8 @@ class ExampleBatteryApi(BatteryApiInterface):
         self._password = secrets_json.get("password")
         self._charge_plan = None
 
-    async def login(self) -> bool:
-        """Login the user to be able to read and write schedules to the battery
-        Return True if the login succeeded"""
+    async def _login(self) -> bool:
+        """Login is not part of the interface, but can be needed to perform before other requests"""
         _LOGGER.debug(
             "Login user %s@%s with password %s",
             self._username,
@@ -38,7 +37,7 @@ class ExampleBatteryApi(BatteryApiInterface):
     async def schedule_battery(self, new_charge_plan: ChargePlan) -> bool:
         """Create new schedule for the battery
         Return True if the scheduling succeeded"""
-        _LOGGER.debug(new_charge_plan)
+        await self._login()
         self._charge_plan = new_charge_plan
         return True
 
@@ -47,6 +46,7 @@ class ExampleBatteryApi(BatteryApiInterface):
         if self._charge_plan is not None:
             return self._charge_plan
 
+        await self._login()
         charge_plan = ChargePlan()
         charge_plan.add(datetime.now().replace(hour=0), -1122, 1.15)
         charge_plan.add(datetime.now().replace(hour=1), 1234, 3.05)

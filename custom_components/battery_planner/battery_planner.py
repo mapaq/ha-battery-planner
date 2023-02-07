@@ -42,7 +42,6 @@ class BatteryPlanner:
             max_discharge_power=3000,
         )
         self._battery_api = create_api_instance_from_secrets_file()
-        self._battery_api.login()
 
     async def reschedule(
         self,
@@ -51,7 +50,7 @@ class BatteryPlanner:
         prices_tomorrow: list[float],
     ) -> None:
         """Get future prices and create new schedule"""
-        _LOGGER.debug(
+        _LOGGER.info(
             "Rescheduling battery, battery state of charge = %s",
             battery_state_of_charge,
         )

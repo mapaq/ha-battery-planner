@@ -14,12 +14,6 @@ class BatteryApiInterface(ABC):
 
     @classmethod
     @abstractmethod
-    async def login(cls) -> bool:
-        """Login to the scheduling service
-        Return True if login was successful"""
-
-    @classmethod
-    @abstractmethod
     async def schedule_battery(cls, new_charge_plan: ChargePlan) -> bool:
         """Create new schedule
         Return True if the scheduling was successful"""
