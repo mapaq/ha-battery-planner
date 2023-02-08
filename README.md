@@ -6,9 +6,11 @@ A secrets file specifying the used API and needed credentials must be created in
 secrets.json
 ```json
 {
-    "api": "example_battery_api",
-    "host": "127.0.0.1",
-    "username": "theuser",
-    "password": "thepassword"
+    "battery_planner": {
+        "api": "example_battery_api",
+        "host": "127.0.0.1",
+        "username": "theuser",
+        "password": "thepassword"
+    }
 }
 ```

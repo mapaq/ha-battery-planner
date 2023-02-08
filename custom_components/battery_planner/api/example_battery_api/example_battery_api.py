@@ -3,6 +3,8 @@
 import logging
 from datetime import datetime
 
+from homeassistant.core import HomeAssistant
+
 from ...battery_api_interface import BatteryApiInterface
 from ...charge_plan import ChargePlan
 
@@ -17,8 +19,8 @@ class ExampleBatteryApi(BatteryApiInterface):
     _password: str
     _charge_plan: ChargePlan
 
-    def __init__(self, secrets_json: dict[str:str]):
-        super().__init__(secrets_json)
+    def __init__(self, secrets_json: dict[str:str], hass: HomeAssistant):
+        super().__init__(secrets_json, hass)
         self._host = secrets_json.get("host")
         self._username = secrets_json.get("username")
         self._password = secrets_json.get("password")

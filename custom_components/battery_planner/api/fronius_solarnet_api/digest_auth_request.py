@@ -5,6 +5,8 @@ import re
 import requests
 from requests import Response
 
+from homeassistant.core import HomeAssistant
+
 
 class DigestAuthRequest:
     """Create HTTP requests usig digest authorization.
@@ -16,12 +18,14 @@ class DigestAuthRequest:
     _password: str
     _auth_data: dict[str, str]
 
-    def __init__(self, host: str, username: str, password: str):
+    def __init__(self, host: str, username: str, password: str, hass: HomeAssistant):
         self._host = host
         self._username = username
         self._password = password
+        self._auth_data = None
+        self._hass = hass
 
-    def get(self, digest_uri: str, headers: dict[str, str] = None) -> Response:
+    async def get(self, digest_uri: str, headers: dict[str, str] = None) -> Response:
         """GET request"""
         url = f"{self._host}{digest_uri}"
 
@@ -36,7 +40,7 @@ class DigestAuthRequest:
         response = requests.get(url, headers=headers)
 
         if response.status_code == 401:
-            self._auth_data = get_auth_data_from_response(response)
+            self._auth_data = parse_auth_data_from_response(response)
             headers = {
                 "Authorization": create_auth_header(
                     "GET", self._auth_data, digest_uri, self._username, self._password
@@ -54,7 +58,7 @@ class DigestAuthRequest:
 
         return response
 
-    def post_json(
+    async def post_json(
         self, digest_uri: str, headers: dict[str, str] = None, payload: object = None
     ) -> Response:
         """POST request with JSON data"""
@@ -71,7 +75,7 @@ class DigestAuthRequest:
         response = requests.post(url, headers=headers, json=payload)
 
         if response.status_code == 401:
-            self._auth_data = get_auth_data_from_response(response)
+            self._auth_data = parse_auth_data_from_response(response)
             headers = {
                 "Authorization": create_auth_header(
                     "POST", self._auth_data, digest_uri, self._username, self._password
@@ -128,18 +132,20 @@ def create_auth_header(
     return auth_header
 
 
-def get_auth_data_from_response(response) -> dict[str, str]:
+def parse_auth_data_from_response(response) -> dict[str, str]:
     """Extract auth data from response"""
     auth_data = {}
     auth_data_string = response.headers["X-WWW-Authenticate"]
-    auth_data["realm"] = get_parameter_from_auth_data("realm", auth_data_string)
-    auth_data["algorithm"] = get_parameter_from_auth_data("algorithm", auth_data_string)
-    auth_data["nonce"] = get_parameter_from_auth_data("nonce", auth_data_string)
-    auth_data["qop"] = get_parameter_from_auth_data("qop", auth_data_string)
+    auth_data["realm"] = parse_parameter_from_auth_data("realm", auth_data_string)
+    auth_data["algorithm"] = parse_parameter_from_auth_data(
+        "algorithm", auth_data_string
+    )
+    auth_data["nonce"] = parse_parameter_from_auth_data("nonce", auth_data_string)
+    auth_data["qop"] = parse_parameter_from_auth_data("qop", auth_data_string)
     return auth_data
 
 
-def get_parameter_from_auth_data(parameter: str, auth_data_string: str) -> str:
+def parse_parameter_from_auth_data(parameter: str, auth_data_string: str) -> str:
     """Extract a parameter from an auth data string"""
     regex_pattern = f"{parameter}=[^,]+"
     result = re.findall(regex_pattern, auth_data_string)

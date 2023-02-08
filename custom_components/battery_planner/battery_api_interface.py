@@ -1,6 +1,7 @@
 """Interface for a battery API to be used by BatteryPlanner"""
 
 from abc import ABC, abstractmethod
+from homeassistant.core import HomeAssistant
 from .charge_plan import ChargePlan
 
 
@@ -9,7 +10,7 @@ class BatteryApiInterface(ABC):
 
     @classmethod
     @abstractmethod
-    def __init__(cls, secrets_json: dict[str:str]):
+    def __init__(cls, secrets_json: dict[str:str], hass: HomeAssistant):
         """Constructor taking secrets data as a json dict"""
 
     @classmethod

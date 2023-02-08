@@ -41,7 +41,7 @@ class BatteryPlanner:
             max_charge_power=3000,
             max_discharge_power=3000,
         )
-        self._battery_api = create_api_instance_from_secrets_file()
+        self._battery_api = create_api_instance_from_secrets_file(hass)
 
     async def reschedule(
         self,
@@ -183,13 +183,14 @@ def map_prices_to_hour(
     return hourly_prices
 
 
-def create_api_instance_from_secrets_file():
+def create_api_instance_from_secrets_file(hass: HomeAssistant):
     """Create battery api instance from the api privided in secrets file"""
     secrets_json = get_secrets()
-    api_name = secrets_json.get("api")
+    api_name: str = secrets_json.get("api")
     api_module = importlib.import_module(f"{API_PATH}.{api_name}.{api_name}")
-    cls = getattr(api_module, "ExampleBatteryApi")
-    battery_api: BatteryApiInterface = cls(secrets_json)
+    class_name = class_name_from_module_name(api_name)
+    cls = getattr(api_module, class_name)
+    battery_api: BatteryApiInterface = cls(secrets_json, hass)
     return battery_api
 
 
@@ -197,4 +198,13 @@ def get_secrets() -> dict[str:str]:
     """Get name of the API to be used, specified in the secrets file"""
     secrets_path = "custom_components/battery_planner/secrets.json"
     with open(secrets_path, encoding="utf-8") as secrets_file:
-        return json.load(secrets_file)
+        return json.load(secrets_file).get("battery_planner")
+
+
+def class_name_from_module_name(module_name: str) -> str:
+    """Create a PascalCase class name from a snake_case module name"""
+    class_name = ""
+    words = module_name.split("_")
+    for word in words:
+        class_name += word.capitalize()
+    return class_name
