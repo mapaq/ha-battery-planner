@@ -45,10 +45,12 @@ class FroniusSolarnetApi(BatteryApiInterface):
 
         solarnet_schedules: dict[
             datetime, SolarnetChargeSchedule
-        ] = self._active_schedules_for_today()
+        ] = await self._active_schedules_for_today()
 
-        new_schedules = new_charge_plan.get_schedules()
-        for hour_dt, power in new_schedules.items():
+        scheduled_hours = new_charge_plan.scheduled_hours()
+        for hour_iso, entry in scheduled_hours.items():
+            hour_dt = datetime.fromisoformat(hour_iso)
+            power = entry[ChargePlan.KEY_POWER]
             self._create_schedules_for_hour(solarnet_schedules, hour_dt, power)
 
         solarnet_schedules_json = []
@@ -56,11 +58,18 @@ class FroniusSolarnetApi(BatteryApiInterface):
             solarnet_schedules_json.append(solarnet_schedule.tojsondict())
 
         json_data = {self._TIMEOFUSE_JSON_OBJECT: solarnet_schedules_json}
-        # response = async self._solarnet.post_json(self._TIMEOFUSE_URI, payload=json_data)
-        # return response.status_code == 200
-        return True
+        response = await self._solarnet.post_json(
+            self._TIMEOFUSE_URI, payload=json_data
+        )
 
-    def _create_schedules_for_hour(self, solarnet_schedules, hour_dt, power):
+        return response.status_code == 200
+
+    def _create_schedules_for_hour(
+        self,
+        solarnet_schedules: dict[datetime, SolarnetChargeSchedule],
+        hour_dt: datetime,
+        power: int,
+    ):
         schedule_type_min = SolarnetChargeSchedule.SCHEDULE_TYPE_DISCHARGE_MIN
         schedule_type_max = SolarnetChargeSchedule.SCHEDULE_TYPE_DISCHARGE_MAX
         if power < 0:
@@ -93,21 +102,18 @@ class FroniusSolarnetApi(BatteryApiInterface):
     async def get_active_charge_plan(self) -> ChargePlan:
         """Fetch the active charge plan from the inverter"""
         await self._login()
-        avtive_schedules = await self._get_solarnet_schedules()
+        active_schedules = await self._get_solarnet_schedules()
 
         charge_plan = ChargePlan()
-        for solarnet_schedule in avtive_schedules:
+        for solarnet_schedule in active_schedules:
             charge_plan.add(solarnet_schedule.get_hour(), solarnet_schedule.get_power())
 
         return charge_plan
 
     async def _get_solarnet_schedules(self) -> list[SolarnetChargeSchedule]:
         solarnet_schedules = []
-        schedules_data = (
-            await self._solarnet.get(self._TIMEOFUSE_URI)
-            .json()
-            .get(self._TIMEOFUSE_JSON_OBJECT)
-        )
+        response = await self._solarnet.get(self._TIMEOFUSE_URI)
+        schedules_data = response.json().get(self._TIMEOFUSE_JSON_OBJECT)
         for schedule_data in schedules_data:
             solarnet_schedules.append(
                 SolarnetChargeSchedule.fromjsondict(schedule_data)

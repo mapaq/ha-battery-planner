@@ -130,8 +130,8 @@ class BatteryScheduleSensor(SensorEntity):
         """Callback to update the schedule sensor"""
         _LOGGER.debug("Update sensor")
         self._schedule = await self._battery_planner.get_active_schedule()
-        self._attr_native_value = self._schedule.get_power(datetime.now())
-        self._expected_yield = self._schedule.get_expected_yield()
+        self._attr_native_value = self._schedule.power(datetime.now())
+        self._expected_yield = self._schedule.expected_yield()
         self.async_write_ha_state()
 
     async def async_added_to_hass(self) -> None:

@@ -51,20 +51,24 @@ class ChargePlan:
             return entry
         return self._schedule[hour_iso]
 
-    def get_power(self, hour: datetime) -> int:
+    def power(self, hour: datetime) -> int:
         """Get the scheduled power value for the given hour"""
         return self.get(hour)[self.KEY_POWER]
 
-    def get_scheduled_hours(self) -> dict[str, dict[str : int | float]]:
+    def scheduled_hours(self) -> dict[str, dict[str : int | float]]:
         """Get all scheduled hours"""
         return self._schedule
 
-    def get_expected_yield(self) -> float:
+    def expected_yield(self) -> float:
         """Get expected financial yield of the planned charging and discharging"""
         expected_yield = 0
         for entry in self._schedule.values():
             power = entry[self.KEY_POWER]
             price = entry[self.KEY_PRICE]
+            if price is None:
+                # Price might be None when plan is fetched from inverter
+                # -> Return None since the price is not valid
+                return None
             # TODO: Make power unit and price/energy unit adjustable by sensor settings in yaml
             expected_yield += (power / 1000) * price
         return expected_yield

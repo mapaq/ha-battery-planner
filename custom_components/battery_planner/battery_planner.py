@@ -74,6 +74,7 @@ class BatteryPlanner:
     async def _get_active_schedule(self) -> ChargePlan:
         active_charge_plan = await self._battery_api.get_active_charge_plan()
         if isinstance(active_charge_plan, ChargePlan):
+            # TODO: Add prices to the fetched charge plan
             async_dispatcher_send(self._hass, EVENT_NEW_DATA)
         else:
             _LOGGER.error("Could not fetch the active charge plan from the battery")

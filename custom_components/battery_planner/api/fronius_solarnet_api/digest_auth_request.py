@@ -1,11 +1,14 @@
 """Digest Auth Request"""
 
+import logging
 import hashlib
 import re
 import requests
 from requests import Response
 
 from homeassistant.core import HomeAssistant
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class DigestAuthRequest:
@@ -37,7 +40,13 @@ class DigestAuthRequest:
                     "GET", self._auth_data, digest_uri, self._username, self._password
                 )
             }
-        response = requests.get(url, headers=headers)
+
+        def first_request():
+            _LOGGER.debug("GET %s with headers=%s", url, headers)
+            response = requests.get(url, headers=headers)
+            return response
+
+        response = await self._hass.async_add_executor_job(first_request)
 
         if response.status_code == 401:
             self._auth_data = parse_auth_data_from_response(response)
@@ -46,7 +55,13 @@ class DigestAuthRequest:
                     "GET", self._auth_data, digest_uri, self._username, self._password
                 )
             }
-            response = requests.get(url, headers=headers)
+
+            def second_request():
+                _LOGGER.debug("GET %s with headers=%s", url, headers)
+                response = requests.get(url, headers=headers)
+                return response
+
+            response = await self._hass.async_add_executor_job(second_request)
 
         if response.status_code != 200:
             request_string = f"GET {url}"
@@ -58,6 +73,7 @@ class DigestAuthRequest:
 
         return response
 
+    # TODO: Refactor to one shared "request" method for GET and POST
     async def post_json(
         self, digest_uri: str, headers: dict[str, str] = None, payload: object = None
     ) -> Response:
@@ -72,7 +88,13 @@ class DigestAuthRequest:
                     "POST", self._auth_data, digest_uri, self._username, self._password
                 )
             }
-        response = requests.post(url, headers=headers, json=payload)
+
+        def first_request():
+            _LOGGER.debug("POST %s with headers=%s", url, headers)
+            response = requests.post(url, headers=headers, json=payload)
+            return response
+
+        response = await self._hass.async_add_executor_job(first_request)
 
         if response.status_code == 401:
             self._auth_data = parse_auth_data_from_response(response)
@@ -81,7 +103,13 @@ class DigestAuthRequest:
                     "POST", self._auth_data, digest_uri, self._username, self._password
                 )
             }
-            response = requests.post(url, headers=headers, json=payload)
+
+            def second_request():
+                _LOGGER.debug("POST %s with headers=%s", url, headers)
+                response = requests.post(url, headers=headers, json=payload)
+                return response
+
+            response = await self._hass.async_add_executor_job(second_request)
 
         if response.status_code != 200:
             request_string = f"GET {url}"
