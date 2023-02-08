@@ -64,7 +64,7 @@ class BatteryScheduleSensor(SensorEntity):
     _battery_planner: BatteryPlanner = None
     _hass: HomeAssistant = None
 
-    _schedule: ChargePlan = None
+    _charge_plan: ChargePlan = None
     _expected_yield: float = None
 
     def __init__(
@@ -122,16 +122,18 @@ class BatteryScheduleSensor(SensorEntity):
     def extra_state_attributes(self) -> dict[str, object]:
         return {
             "currency": self._currency,
-            "schedule": str(self._schedule),
+            "schedule": str(self._charge_plan),
             "expected_yield": self._expected_yield,
         }
 
     async def _update(self) -> None:
         """Callback to update the schedule sensor"""
         _LOGGER.debug("Update sensor")
-        self._schedule = await self._battery_planner.get_active_schedule()
-        self._attr_native_value = self._schedule.power(datetime.now())
-        self._expected_yield = self._schedule.expected_yield()
+        self._charge_plan = await self._battery_planner.get_active_schedule()
+        _LOGGER.debug("Received charge plan from API:")
+        _LOGGER.debug("\n%s", self._charge_plan)
+        self._attr_native_value = self._charge_plan.get_power_for_hour(datetime.now())
+        self._expected_yield = self._charge_plan.expected_yield()
         self.async_write_ha_state()
 
     async def async_added_to_hass(self) -> None:

@@ -51,7 +51,7 @@ class ChargePlan:
             return entry
         return self._schedule[hour_iso]
 
-    def power(self, hour: datetime) -> int:
+    def get_power_for_hour(self, hour: datetime) -> int:
         """Get the scheduled power value for the given hour"""
         return self.get(hour)[self.KEY_POWER]
 
@@ -72,6 +72,14 @@ class ChargePlan:
             # TODO: Make power unit and price/energy unit adjustable by sensor settings in yaml
             expected_yield += (power / 1000) * price
         return expected_yield
+
+    def is_empty_plan(self) -> bool:
+        """Return True if all power levels for the charge plan is 0"""
+        for entry in self._schedule.values():
+            power = entry[self.KEY_POWER]
+            if power != 0:
+                return False
+        return True
 
 
 def hour_iso_string(hour: datetime) -> str:

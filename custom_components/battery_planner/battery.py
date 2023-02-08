@@ -51,6 +51,14 @@ class Battery:
         self._soc = soc
         self.energy = int(self.capacity * soc)
 
+    def is_full(self) -> bool:
+        """Return True if the battery is fully charged"""
+        return self.energy == self.capacity
+
+    def is_empty(self) -> bool:
+        """Return True if the battery is below or equal to soc limit"""
+        return self.energy <= self.capacity * self._soc_limit
+
     def charge(self) -> int:
         """Increase stored energy of the fictive battery"""
         charge_power = min(self.capacity - self.energy, self._max_charge_power)
