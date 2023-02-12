@@ -39,6 +39,12 @@ async def async_setup(hass: HomeAssistant, config: Config) -> bool:
     """Set up using yaml config file."""
     _LOGGER.debug("%s: async_setup", DOMAIN)
 
+    # TODO: Make a "stop" service, the stop service is handled differently
+    # by each API, so just call "stop" to the API to make the battery stop charging
+    # and keep being stopped until started or rescheduled again
+
+    # TODO: Make a "start" service that will charge the battery up to 100% and then set to idle (0 W)
+
     async def service_call_reschedule(service_call):
         """Get future prices and create new schedule"""
 

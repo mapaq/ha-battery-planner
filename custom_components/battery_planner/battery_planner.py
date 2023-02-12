@@ -56,6 +56,8 @@ class BatteryPlanner:
             "Rescheduling battery, battery state of charge = %s",
             battery_state_of_charge,
         )
+        _LOGGER.debug("Prices today = %s", prices_today)
+        _LOGGER.debug("Prices tomorrow = %s", prices_tomorrow)
         self._battery.set_soc(battery_state_of_charge)
         hourly_prices = map_prices_to_hour(prices_today, prices_tomorrow)
         charge_plan = self._create_charge_plan(hourly_prices)
@@ -127,6 +129,8 @@ class BatteryPlanner:
                 reverse=True,
             )
         }
+
+        # TODO: If soc is high, don't discharge if price is low, only discharge above like PRICE_MARGIN * 2 or something
 
         self._charge_at_lowest_priced_hours(
             hourly_prices_sorted_by_highest_price,
