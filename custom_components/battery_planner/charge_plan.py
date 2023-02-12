@@ -12,7 +12,7 @@ class ChargePlan:
     KEY_POWER = "power"
     KEY_PRICE = "price"
 
-    _schedule: dict[str, dict[str : int | float]] = None
+    _schedule: dict[str, dict[str, int | float]]
 
     def __init__(self):
         self._schedule = {}
@@ -26,7 +26,7 @@ class ChargePlan:
             readable_entry.append(f"{hour}: {entry}")
         return str.join("\n", readable_entry)
 
-    def add(self, hour: datetime, power: int, price: float = None) -> None:
+    def add(self, hour: datetime, power: int, price: float | None = None) -> None:
         """Add a new hour to the charge plan
         hour - The hour as a datetime object
         power - (W) Negative value means charge, positive means discharge
@@ -36,7 +36,7 @@ class ChargePlan:
         entry[self.KEY_PRICE] = price
         self._schedule[hour_iso_string(hour)] = entry
 
-    def get(self, hour: datetime) -> dict[str : int | float]:
+    def get(self, hour: datetime) -> dict[str, int | float]:
         """Get power and price for the hour in a datetime object"""
         hour_iso = hour_iso_string(hour)
         if hour_iso not in self._schedule:
@@ -51,15 +51,15 @@ class ChargePlan:
             return entry
         return self._schedule[hour_iso]
 
-    def get_power_for_hour(self, hour: datetime) -> int:
+    def get_power_for_hour(self, hour: datetime) -> int | float:
         """Get the scheduled power value for the given hour"""
         return self.get(hour)[self.KEY_POWER]
 
-    def scheduled_hours(self) -> dict[str, dict[str : int | float]]:
+    def scheduled_hours(self) -> dict[str, dict[str, int | float]]:
         """Get all scheduled hours"""
         return self._schedule
 
-    def expected_yield(self) -> float:
+    def expected_yield(self) -> float | None:
         """Get expected financial yield of the planned charging and discharging"""
         expected_yield = 0
         for entry in self._schedule.values():

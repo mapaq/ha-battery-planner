@@ -23,7 +23,7 @@ _LOGGER = logging.getLogger(__name__)
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
-        vol.Optional("unique_id", default="battery_schedule"): cv.string,
+        vol.Optional("unique_id", default="battery_charge_schedule"): cv.string,
         vol.Optional("friendly_name", default="Battery Charge Schedule"): cv.string,
         vol.Optional("currency", default="SEK"): cv.string,
         vol.Optional("power_unit", default=POWER_WATT): cv.string,
@@ -57,15 +57,15 @@ async def async_setup_platform(
 class BatteryScheduleSensor(SensorEntity):
     """Sensor data"""
 
-    _unique_id: str = None
-    _friendly_name: str = None
-    _currency: str = None
-    _power_unit: str = None
-    _battery_planner: BatteryPlanner = None
-    _hass: HomeAssistant = None
+    _unique_id: str
+    _friendly_name: str
+    _currency: str
+    _power_unit: str
+    _battery_planner: BatteryPlanner
+    _hass: HomeAssistant
 
-    _charge_plan: ChargePlan = None
-    _expected_yield: float = None
+    _charge_plan: ChargePlan
+    _expected_yield: float | None
 
     def __init__(
         self,
@@ -82,6 +82,9 @@ class BatteryScheduleSensor(SensorEntity):
         self._power_unit = power_unit
         self._battery_planner = battery_planner
         self._hass = hass
+
+        self._charge_plan = ChargePlan()
+        self._expected_yield = None
 
         self._attr_device_class = SensorDeviceClass.POWER
         self._attr_state_class = SensorStateClass.MEASUREMENT
@@ -111,7 +114,7 @@ class BatteryScheduleSensor(SensorEntity):
         return self._unique_id
 
     @property
-    def device_info(self) -> dict[str:object]:
+    def device_info(self) -> dict[str, object]:
         return {
             "identifiers": {(DOMAIN, self.unique_id)},
             "name": self.name,
@@ -122,7 +125,7 @@ class BatteryScheduleSensor(SensorEntity):
     def extra_state_attributes(self) -> dict[str, object]:
         return {
             "currency": self._currency,
-            "schedule": str(self._charge_plan),
+            "schedule": self._charge_plan.scheduled_hours(),
             "expected_yield": self._expected_yield,
         }
 
@@ -130,8 +133,7 @@ class BatteryScheduleSensor(SensorEntity):
         """Callback to update the schedule sensor"""
         _LOGGER.debug("Update sensor")
         self._charge_plan = await self._battery_planner.get_active_schedule()
-        _LOGGER.debug("Received charge plan from API:")
-        _LOGGER.debug("\n%s", self._charge_plan)
+        _LOGGER.debug("Received charge plan from API:\n%s", self._charge_plan)
         self._attr_native_value = self._charge_plan.get_power_for_hour(datetime.now())
         self._expected_yield = self._charge_plan.expected_yield()
         self.async_write_ha_state()

@@ -58,6 +58,7 @@ class BatteryPlanner:
         self._battery.set_soc(battery_state_of_charge)
         hourly_prices = map_prices_to_hour(prices_today, prices_tomorrow)
         charge_plan = self._create_charge_plan(hourly_prices)
+        _LOGGER.debug("New charge plan will be scheduled:\n%s", charge_plan)
 
         schedule_succeeded = await self._battery_api.schedule_battery(charge_plan)
         if schedule_succeeded:
