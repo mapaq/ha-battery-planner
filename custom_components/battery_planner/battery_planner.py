@@ -16,6 +16,7 @@ from .battery_api_interface import BatteryApiInterface
 _LOGGER = logging.getLogger(__name__)
 
 API_PATH = "custom_components.battery_planner.api"
+SECRETS_PATH = "secrets.json"
 
 
 class BatteryPlanner:
@@ -234,8 +235,7 @@ def create_api_instance_from_secrets_file(hass: HomeAssistant):
 
 def get_secrets() -> dict[str:str]:
     """Get name of the API to be used, specified in the secrets file"""
-    secrets_path = "custom_components/battery_planner/secrets.json"
-    with open(secrets_path, encoding="utf-8") as secrets_file:
+    with open(SECRETS_PATH, encoding="utf-8") as secrets_file:
         return json.load(secrets_file).get("battery_planner")
 
 
