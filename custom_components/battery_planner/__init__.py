@@ -6,6 +6,7 @@ from homeassistant.core import HomeAssistant, Config
 
 from .const import DOMAIN
 from .battery_planner import BatteryPlanner
+from .battery import Battery
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -26,24 +27,39 @@ If you have any issues with this you need to open an issue here:
 """
 
 
-async def _dry_setup(hass: HomeAssistant, config: Config) -> bool:
+async def _dry_setup(hass: HomeAssistant, hass_config: Config) -> bool:
     """Set up using yaml config file."""
     if DOMAIN not in hass.data:
-        battery_planner = BatteryPlanner(hass)
+
+        config = hass_config.get("battery_planner")
+        battery = Battery(
+            capacity=config.get("capacity"),
+            soc_limit=config.get("soc_limit"),
+            max_charge_power=config.get("max_charge_power"),
+            max_discharge_power=config.get("max_discharge_power"),
+        )
+
+        battery_planner = BatteryPlanner(
+            hass=hass,
+            battery=battery,
+            price_margin=config.get("price_margin"),
+            cheap_price=config.get("cheap_price"),
+        )
         hass.data[DOMAIN] = battery_planner
         _LOGGER.debug("Added %s to hass.data", DOMAIN)
     return True
 
 
-async def async_setup(hass: HomeAssistant, config: Config) -> bool:
+async def async_setup(hass: HomeAssistant, hass_config: Config) -> bool:
     """Set up using yaml config file."""
-    _LOGGER.debug("%s: async_setup", DOMAIN)
 
     # TODO: Make a "stop" service, the stop service is handled differently
     # by each API, so just call "stop" to the API to make the battery stop charging
     # and keep being stopped until started or rescheduled again
 
     # TODO: Make a "start" service that will charge the battery up to 100% and then set to idle (0 W)
+
+    # TODO: Make a class that handles services and is provided the hass object at init
 
     async def service_call_reschedule(service_call):
         """Get future prices and create new schedule"""
@@ -61,4 +77,4 @@ async def async_setup(hass: HomeAssistant, config: Config) -> bool:
 
     hass.services.async_register(DOMAIN, "reschedule", service_call_reschedule)
 
-    return await _dry_setup(hass, config)
+    return await _dry_setup(hass, hass_config)

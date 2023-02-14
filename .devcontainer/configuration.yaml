@@ -6,11 +6,16 @@ logger:
     custom_components.battery_planner: debug
 
 battery_planner:
+  capacity: 5000
+  soc_limit: 0.05
+  max_charge_power: 2000
+  max_discharge_power: 3000
+  price_margin: 1.5
+  cheap_price: 0.3
 
 sensor:
-  platform: battery_planner
-  currency: SEK
-  power_unit: W
+  - platform: battery_planner
+    currency: SEK
 
 # If you need to debug uncomment the line below (doc: https://www.home-assistant.io/integrations/debugpy/)
 # debugpy:

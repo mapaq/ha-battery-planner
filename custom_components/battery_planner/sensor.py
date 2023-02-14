@@ -26,31 +26,29 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
         vol.Optional("unique_id", default="battery_charge_schedule"): cv.string,
         vol.Optional("friendly_name", default="Battery Charge Schedule"): cv.string,
         vol.Optional("currency", default="SEK"): cv.string,
-        vol.Optional("power_unit", default=POWER_WATT): cv.string,
     }
 )
 
 
-def _dry_setup(hass: HomeAssistant, config: Config, add_devices):
+def _dry_setup(hass: HomeAssistant, config: Config, add_devices_callback):
     """Setup the platform using yaml"""
     _LOGGER.debug("Setting up Battery Schedule Sensor with config %r", config)
     sensor = BatteryScheduleSensor(
         unique_id=config.get("unique_id"),
         friendly_name=config.get("friendly_name"),
         currency=config.get("currency"),
-        power_unit=config.get("power_unit"),
+        power_unit=POWER_WATT,
         battery_planner=hass.data[DOMAIN],
         hass=hass,
     )
-    add_devices([sensor])
+    add_devices_callback([sensor])
 
 
 async def async_setup_platform(
-    hass: HomeAssistant, config: Config, add_devices, discovery_info=None
+    hass: HomeAssistant, config: Config, add_devices_callback, discovery_info=None
 ) -> None:
     """Setup the sensor from yaml settings"""
-    _LOGGER.debug("Setup the sensor from yaml")
-    _dry_setup(hass, config, add_devices)
+    _dry_setup(hass, config, add_devices_callback)
     return True
 
 
@@ -97,7 +95,7 @@ class BatteryScheduleSensor(SensorEntity):
     @property
     def should_poll(self) -> bool:
         """No need to poll. Coordinator notifies entity of updates."""
-        # TODO: Probably needs to poll, or create a coordinator
+        # TODO: Probably needs to poll, or create a coordinator to get active schedule
         return False
 
     @property
@@ -131,7 +129,7 @@ class BatteryScheduleSensor(SensorEntity):
 
     async def _update(self) -> None:
         """Callback to update the schedule sensor"""
-        _LOGGER.debug("Update sensor")
+        _LOGGER.debug("Update sensor Battery Schedule")
         self._charge_plan = await self._battery_planner.get_active_schedule()
         _LOGGER.debug("Received charge plan from API:\n%s", self._charge_plan)
         self._attr_native_value = self._charge_plan.get_power_for_hour(datetime.now())
@@ -141,6 +139,5 @@ class BatteryScheduleSensor(SensorEntity):
     async def async_added_to_hass(self) -> None:
         """Connect to dispatcher listening for entity data notifications."""
         await super().async_added_to_hass()
-        _LOGGER.debug("called async_added_to_hass %s", self.name)
         await self._update()
         async_dispatcher_connect(self._hass, EVENT_NEW_DATA, self._update)

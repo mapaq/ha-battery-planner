@@ -14,3 +14,24 @@ secrets.json
     }
 }
 ```
+
+configuration.yaml
+```yaml
+battery_planner:
+  # The total energy capacity of the battery in Watts (W)
+  capacity: 5000
+  # The minimum allowed state of charge (SoC) as percent represented in a float number (0.05 = 5%)
+  soc_limit: 0.05
+  # The maximum allowed power when charging (W)
+  max_charge_power: 1000
+  # The maximum allowed power when discharging (W)
+  max_discharge_power: 2000
+  # The difference between charge and discharge price must be above this to schedule a charge cycle
+  price_margin: 1.0
+  # If below this price, the battery will charge even if not discharging the same day and store for later use
+  cheap_price: 0.2
+
+sensor:
+  - platform: battery_planner
+    currency: SEK
+```

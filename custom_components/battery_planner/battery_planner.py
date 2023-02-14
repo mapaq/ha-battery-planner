@@ -24,25 +24,26 @@ class BatteryPlanner:
 
     # The price difference between charge hour and discharge hour
     # must be higher than this to create a schedule for those hours
-    # TODO: Make configurable in configuration.yaml
-    PRICE_MARGIN: float = 1.0
-    SUPER_CHEAP_PRICE: float = 0.2
+    _price_margin: float
+    _cheap_price: float
 
     _hass: HomeAssistant
     _active_schedule: ChargePlan
     _battery: Battery
     _battery_api: BatteryApiInterface
 
-    def __init__(self, hass: HomeAssistant):
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        battery: Battery,
+        price_margin: float,
+        cheap_price: float,
+    ):
         self._hass = hass
         self._active_schedule = None
-        # TODO: Make configurable
-        self._battery = Battery(
-            capacity=7700,
-            soc_limit=0.05,
-            max_charge_power=3000,
-            max_discharge_power=3000,
-        )
+        self._battery = battery
+        self._price_margin = price_margin
+        self._cheap_price = cheap_price
         self._battery_api = create_api_instance_from_secrets_file(hass)
 
     async def reschedule(
@@ -199,7 +200,7 @@ class BatteryPlanner:
             ) in hourly_prices_sorted_by_lowest_price.items():
                 if (
                     (charge_hour < discharge_hour)
-                    and (discharge_price - charge_price > self.PRICE_MARGIN)
+                    and (discharge_price - charge_price > self._price_margin)
                     and (not self._battery.is_full())
                     and (power_levels[charge_hour] == 0)
                 ):
@@ -218,7 +219,7 @@ class BatteryPlanner:
             # Maybe store the chargeing price as an attribute on sensor to use when not discharged in the same day
             if (
                 (self._battery.remaining_energy_above_soc_limit() > 0)
-                and (price >= self.PRICE_MARGIN)
+                and (price >= self._price_margin)
                 and (discharge_hour > last_charged_hour)
             ):
                 power_levels[discharge_hour] = self._battery.discharge_max()
@@ -233,7 +234,7 @@ class BatteryPlanner:
             charge_price,
         ) in hourly_prices_sorted_by_lowest_price.items():
             if (
-                (charge_price < self.SUPER_CHEAP_PRICE)
+                (charge_price < self._cheap_price)
                 and (not self._battery.is_full())
                 and (power_levels[charge_hour] == 0)
             ):
