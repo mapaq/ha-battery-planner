@@ -58,9 +58,16 @@ class BatteryPlanner:
         )
         _LOGGER.debug("Prices today = %s", prices_today)
         _LOGGER.debug("Prices tomorrow = %s", prices_tomorrow)
+
         self._battery.set_soc(battery_state_of_charge)
+
+        active_charge_plan = await self._get_active_schedule()
         hourly_prices = map_prices_to_hour(prices_today, prices_tomorrow)
-        charge_plan = self._create_charge_plan(hourly_prices)
+        hourly_prices = self._get_future_unscheduled_hours(
+            hourly_prices, active_charge_plan
+        )
+        charge_plan = self._create_charge_plan_based_on_prices(hourly_prices)
+
         _LOGGER.debug("New charge plan will be scheduled:\n%s", charge_plan)
 
         schedule_succeeded = await self._battery_api.schedule_battery(charge_plan)
@@ -85,7 +92,30 @@ class BatteryPlanner:
             _LOGGER.error("Could not fetch the active charge plan from the battery")
         return active_charge_plan
 
-    def _create_charge_plan(
+    def _get_future_unscheduled_hours(
+        self, hourly_prices: dict[datetime, object], active_charge_plan: ChargePlan
+    ) -> dict[datetime, object]:
+        """Remove the passed hours from a dict and return the future hours"""
+        now = datetime.now()
+
+        last_scheduled_hour = now
+        for hour_iso, entry in active_charge_plan.scheduled_hours().items():
+            hour = datetime.fromisoformat(hour_iso)
+            power = entry[ChargePlan.KEY_POWER]
+            if power != 0:
+                if hour > now:
+                    # Energy per hour (Wh) is equivalent to average power (W) for one hour
+                    # Negating power since -power means charge (consume) and +power means discharge (produce)
+                    self._battery.add_energy(-power)
+                last_scheduled_hour = hour
+
+        future_hours = {}
+        for hour, value in hourly_prices.items():
+            if hour > now and hour > last_scheduled_hour:
+                future_hours[hour] = value
+        return future_hours
+
+    def _create_charge_plan_based_on_prices(
         self,
         hourly_prices: dict[datetime, float],
     ) -> ChargePlan:
@@ -102,8 +132,6 @@ class BatteryPlanner:
         max_discharge_power - The maximum allowed discharge level to be planned (W)
 
         Returns a plan with all 0 W if the price margin is to low"""
-
-        hourly_prices: dict[datetime, float] = get_future_hours(hourly_prices)
 
         hourly_prices_sorted_by_hour: dict[datetime, float] = {
             key: val
@@ -130,16 +158,14 @@ class BatteryPlanner:
             )
         }
 
-        # TODO: If soc is high, don't discharge if price is low, only discharge above like PRICE_MARGIN * 2 or something
-
-        self._charge_at_lowest_priced_hours(
+        last_charged_hour = self._charge_at_lowest_priced_hours(
             hourly_prices_sorted_by_highest_price,
             hourly_prices_sorted_by_lowest_price,
             power_levels,
         )
 
         self._discharge_at_highest_priced_hours(
-            hourly_prices_sorted_by_highest_price, power_levels
+            hourly_prices_sorted_by_highest_price, power_levels, last_charged_hour
         )
 
         charge_plan = _create_charge_plan(hourly_prices, power_levels)
@@ -157,7 +183,10 @@ class BatteryPlanner:
         hourly_prices_sorted_by_highest_price: dict[datetime, float],
         hourly_prices_sorted_by_lowest_price: dict[datetime, float],
         power_levels: dict[datetime, int],
-    ):
+    ) -> datetime:
+
+        last_charged_hour: datetime = datetime.now()
+
         # Since we are creating one schedule for each hour, the power level is the
         # same as added energy for that hour, i.e. Power (W) during one hour = Energy (Wh)
         for (
@@ -174,16 +203,25 @@ class BatteryPlanner:
                     and (not self._battery.is_full())
                     and (power_levels[charge_hour] == 0)
                 ):
-                    power_levels[charge_hour] = self._battery.charge()
+                    power_levels[charge_hour] = self._battery.charge_max()
+                    last_charged_hour = charge_hour
+        return last_charged_hour
 
     def _discharge_at_highest_priced_hours(
         self,
         hourly_prices_sorted_by_highest_price: dict[datetime, float],
         power_levels: dict[datetime, int],
+        last_charged_hour: datetime,
     ):
-        for discharge_hour in hourly_prices_sorted_by_highest_price.keys():
-            if self._battery.remaining_energy_above_soc_limit() > 0:
-                power_levels[discharge_hour] = self._battery.discharge()
+        for discharge_hour, price in hourly_prices_sorted_by_highest_price.items():
+            # FIXME: Won't discharge when charged at negative price and discharge price is below PRICE_MARGIN
+            # Maybe store the chargeing price as an attribute on sensor to use when not discharged in the same day
+            if (
+                (self._battery.remaining_energy_above_soc_limit() > 0)
+                and (price >= self.PRICE_MARGIN)
+                and (discharge_hour > last_charged_hour)
+            ):
+                power_levels[discharge_hour] = self._battery.discharge_max()
 
     def _charge_if_super_cheap_prices(
         self,
@@ -199,17 +237,7 @@ class BatteryPlanner:
                 and (not self._battery.is_full())
                 and (power_levels[charge_hour] == 0)
             ):
-                power_levels[charge_hour] = self._battery.charge()
-
-
-def get_future_hours(hours: dict[datetime, object]) -> dict[datetime, object]:
-    """Remove the passed hours from a dict and return the future hours"""
-    now = datetime.now()
-    future_hours = {}
-    for hour, value in hours.items():
-        if now < hour:
-            future_hours[hour] = value
-    return future_hours
+                power_levels[charge_hour] = self._battery.charge_max()
 
 
 def map_prices_to_hour(

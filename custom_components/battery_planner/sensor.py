@@ -142,5 +142,5 @@ class BatteryScheduleSensor(SensorEntity):
         """Connect to dispatcher listening for entity data notifications."""
         await super().async_added_to_hass()
         _LOGGER.debug("called async_added_to_hass %s", self.name)
-        async_dispatcher_connect(self._hass, EVENT_NEW_DATA, self._update)
         await self._update()
+        async_dispatcher_connect(self._hass, EVENT_NEW_DATA, self._update)
