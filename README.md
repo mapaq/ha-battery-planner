@@ -20,8 +20,10 @@ configuration.yaml
 battery_planner:
   # The total energy capacity of the battery in Watts (W)
   capacity: 5000
-  # The minimum allowed state of charge (SoC) as percent represented in a float number (0.05 = 5%)
-  soc_limit: 0.05
+  # The maximum allowed state of charge (SoC) in percent as in integer number (80 = 80%)
+  upper_soc_limit: 80
+  # The minimum allowed state of charge (SoC) in percent as in integer number (5 = 5%)
+  lower_soc_limit: 5
   # The maximum allowed power when charging (W)
   max_charge_power: 1000
   # The maximum allowed power when discharging (W)

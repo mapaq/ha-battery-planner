@@ -34,9 +34,10 @@ async def _dry_setup(hass: HomeAssistant, hass_config: Config) -> bool:
         config = hass_config.get("battery_planner")
         battery = Battery(
             capacity=config.get("capacity"),
-            soc_limit=config.get("soc_limit"),
             max_charge_power=config.get("max_charge_power"),
             max_discharge_power=config.get("max_discharge_power"),
+            upper_soc_limit=config.get("upper_soc_limit"),
+            lower_soc_limit=config.get("lower_soc_limit"),
         )
 
         battery_planner = BatteryPlanner(

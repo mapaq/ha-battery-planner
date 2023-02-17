@@ -218,7 +218,7 @@ class BatteryPlanner:
             # FIXME: Won't discharge when charged at negative price and discharge price is below PRICE_MARGIN
             # Maybe store the chargeing price as an attribute on sensor to use when not discharged in the same day
             if (
-                (self._battery.remaining_energy_above_soc_limit() > 0)
+                (self._battery.remaining_energy_above_lower_soc_limit() > 0)
                 and (price >= self._price_margin)
                 and (discharge_hour > last_charged_hour)
             ):

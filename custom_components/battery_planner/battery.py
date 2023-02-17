@@ -17,7 +17,8 @@ class Battery:
     _max_discharge_power: int
 
     capacity: int
-    _soc_limit: float
+    _upper_soc_limit: float
+    _lower_soc_limit: float
     _soc: float
     energy: int
 
@@ -26,12 +27,14 @@ class Battery:
         capacity: int,
         max_charge_power: int,
         max_discharge_power: int,
-        soc_limit: float,
+        upper_soc_limit: int,
+        lower_soc_limit: int,
     ):
         self.capacity = capacity
         self._max_charge_power = max_charge_power
         self._max_discharge_power = max_discharge_power
-        self._soc_limit = soc_limit
+        self._upper_soc_limit = upper_soc_limit / 100
+        self._lower_soc_limit = lower_soc_limit / 100
         self.set_soc(0.0)
 
     def __repr__(self):
@@ -40,7 +43,8 @@ class Battery:
     def __str__(self):
         readable = {}
         readable["Capacity"] = self.capacity
-        readable["SoC limit"] = self._soc_limit
+        readable["Upper SoC limit"] = self._upper_soc_limit
+        readable["Lower SoC limit"] = self._lower_soc_limit
         readable["Max charge power"] = self._max_charge_power
         readable["Max discharge power"] = self._max_discharge_power
         readable["Energy level"] = self.energy
@@ -54,7 +58,7 @@ class Battery:
 
     def min_energy_limit(self) -> int:
         """Minimum allowed energy level based on capacity and minimum SoC limit"""
-        return int(self.capacity * self._soc_limit)
+        return int(self.capacity * self._lower_soc_limit)
 
     def is_full(self) -> bool:
         """Return True if the battery is fully charged"""
@@ -62,7 +66,7 @@ class Battery:
 
     def is_empty(self) -> bool:
         """Return True if the battery is below or equal to soc limit"""
-        return self.energy <= self.capacity * self._soc_limit
+        return self.energy <= self.capacity * self._lower_soc_limit
 
     def add_energy(self, energy: int) -> None:
         """Change the battery energy level"""
@@ -75,13 +79,16 @@ class Battery:
 
     def charge(self, max_charge_power: int) -> int:
         """Increase stored energy of the fictive battery"""
-        charge_power = min(self.capacity - self.energy, max_charge_power)
+        charge_power = min(
+            self.remaining_energy_below_upper_soc_limit(), max_charge_power
+        )
         self.energy += charge_power
 
-        if self.energy == self.capacity:
-            charge_power += self._extra_power_to_fully_charge_or_deplete_the_battery(
-                max_charge_power
-            )
+        # TODO: Possibly remove this functionality and allow some percents diff in actual charge
+        # if self.energy == self.capacity:
+        #     charge_power += self._extra_power_to_fully_charge_or_deplete_the_battery(
+        #         max_charge_power
+        #     )
 
         return int(-charge_power)
 
@@ -92,20 +99,25 @@ class Battery:
     def discharge(self, max_discharge_power: int) -> int:
         """Decrease stored energy of the fictive battery"""
         discharge_power = min(
-            self.remaining_energy_above_soc_limit(), max_discharge_power
+            self.remaining_energy_above_lower_soc_limit(), max_discharge_power
         )
         self.energy -= discharge_power
 
-        if self.remaining_energy_above_soc_limit() == 0:
-            discharge_power += self._extra_power_to_fully_charge_or_deplete_the_battery(
-                max_discharge_power
-            )
+        # TODO: Possibly remove this functionality and allow some percents diff in actual discharge
+        # if self.remaining_energy_above_soc_limit() == 0:
+        #     discharge_power += self._extra_power_to_fully_charge_or_deplete_the_battery(
+        #         max_discharge_power
+        #     )
 
         return int(discharge_power)
 
-    def remaining_energy_above_soc_limit(self):
-        """The remaining amount of energy above soc limit energy level"""
-        return max(0, int(self.energy - self.capacity * self._soc_limit))
+    def remaining_energy_below_upper_soc_limit(self):
+        """The remaining amount of energy below upper soc limit"""
+        return max(0, int((self.capacity * self._upper_soc_limit) - self.energy))
+
+    def remaining_energy_above_lower_soc_limit(self):
+        """The remaining amount of energy above lower soc limit"""
+        return max(0, int(self.energy - (self.capacity * self._lower_soc_limit)))
 
     def _extra_power_to_fully_charge_or_deplete_the_battery(
         self, max_power: int

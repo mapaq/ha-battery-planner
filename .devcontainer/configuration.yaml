@@ -6,9 +6,10 @@ logger:
     custom_components.battery_planner: debug
 
 battery_planner:
-  capacity: 5000
-  soc_limit: 0.05
-  max_charge_power: 2000
+  capacity: 7700
+  upper_soc_limit: 80
+  lower_soc_limit: 20
+  max_charge_power: 3000
   max_discharge_power: 3000
   price_margin: 1.5
   cheap_price: 0.3
