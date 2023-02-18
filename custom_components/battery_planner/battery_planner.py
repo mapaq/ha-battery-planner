@@ -9,7 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 
 from .const import EVENT_NEW_DATA
-from .charge_plan import ChargePlan
+from .charge_plan import ChargePlan, hour_iso_string
 from .battery import Battery
 from .battery_api_interface import BatteryApiInterface
 
@@ -26,9 +26,10 @@ class BatteryPlanner:
     # must be higher than this to create a schedule for those hours
     _price_margin: float
     _cheap_price: float
+    _latest_prices: dict[str, float]
 
     _hass: HomeAssistant
-    _active_schedule: ChargePlan
+    _active_charge_plan: ChargePlan
     _battery: Battery
     _battery_api: BatteryApiInterface
 
@@ -40,10 +41,11 @@ class BatteryPlanner:
         cheap_price: float,
     ):
         self._hass = hass
-        self._active_schedule = None
+        self._active_charge_plan = None
         self._battery = battery
         self._price_margin = price_margin
         self._cheap_price = cheap_price
+        self._latest_prices = {}
         self._battery_api = create_api_instance_from_secrets_file(hass)
 
     async def reschedule(
@@ -62,12 +64,15 @@ class BatteryPlanner:
 
         self._battery.set_soc(battery_state_of_charge)
 
-        active_charge_plan = await self._get_active_schedule()
+        active_charge_plan = await self._get_active_charge_plan()
         hourly_prices = map_prices_to_hour(prices_today, prices_tomorrow)
-        hourly_prices = self._get_future_unscheduled_hours(
+        for hour, price in hourly_prices.items():
+            self._latest_prices[hour_iso_string(hour)] = price
+
+        future_hourly_prices = self._get_future_unscheduled_hours(
             hourly_prices, active_charge_plan
         )
-        charge_plan = self._create_charge_plan_based_on_prices(hourly_prices)
+        charge_plan = self._create_charge_plan_based_on_prices(future_hourly_prices)
 
         _LOGGER.debug("New charge plan will be scheduled:\n%s", charge_plan)
 
@@ -76,21 +81,26 @@ class BatteryPlanner:
             _LOGGER.info("Battery was scheduled with a new charge plan")
         else:
             _LOGGER.error("Failed to schedule battery with new charge plan")
-        await self.get_active_schedule(refresh=True)
+        await self.get_active_charge_plan(refresh=True)
 
-    async def get_active_schedule(self, refresh: bool = False) -> ChargePlan:
+    async def get_active_charge_plan(self, refresh: bool = False) -> ChargePlan:
         """Get the currently active schedule from API"""
-        if self._active_schedule is None or refresh is True:
-            self._active_schedule = await self._get_active_schedule()
-        return self._active_schedule
+        if self._active_charge_plan is None or refresh is True:
+            active_charge_plan = await self._get_active_charge_plan()
+            if isinstance(active_charge_plan, ChargePlan):
+                self._active_charge_plan = active_charge_plan
+                async_dispatcher_send(self._hass, EVENT_NEW_DATA)
+            else:
+                _LOGGER.error("Could not fetch the active charge plan from the battery")
+        return self._active_charge_plan
 
-    async def _get_active_schedule(self) -> ChargePlan:
+    async def _get_active_charge_plan(self) -> ChargePlan:
         active_charge_plan = await self._battery_api.get_active_charge_plan()
-        if isinstance(active_charge_plan, ChargePlan):
-            # TODO: Add prices to the fetched charge plan
-            async_dispatcher_send(self._hass, EVENT_NEW_DATA)
-        else:
-            _LOGGER.error("Could not fetch the active charge plan from the battery")
+        for hour in active_charge_plan.scheduled_hours():
+            if hour in self._latest_prices:
+                active_charge_plan.set_price(
+                    datetime.fromisoformat(hour), self._latest_prices[hour]
+                )
         return active_charge_plan
 
     def _get_future_unscheduled_hours(
@@ -168,6 +178,8 @@ class BatteryPlanner:
         if last_charged_hour == now:
             # The battery was already charged, use price_margin + cheap_price as actual price margin
             price_margin += self._cheap_price
+        else:
+            price_margin += charge_plan.get_average_charging_price()
         self._discharge_at_highest_priced_hours(
             hourly_prices_sorted_by_highest_price,
             charge_plan,

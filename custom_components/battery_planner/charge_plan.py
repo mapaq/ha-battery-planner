@@ -59,6 +59,14 @@ class ChargePlan:
         """Set power value for the given hour"""
         self.get(hour)[self.KEY_POWER] = power
 
+    def get_price(self, hour: datetime) -> int:
+        """Get the price/kWh for the given hour"""
+        return self.get(hour)[self.KEY_PRICE]
+
+    def set_price(self, hour: datetime, price: float):
+        """Set the price/kWh for the given hour"""
+        self.get(hour)[self.KEY_PRICE] = price
+
     def scheduled_hours(self) -> dict[str, dict[str, int | float]]:
         """Get all scheduled hours"""
         return self._schedule
@@ -76,6 +84,22 @@ class ChargePlan:
             # TODO: Make power unit and price/energy unit adjustable by sensor settings in yaml
             expected_yield += (power / 1000) * price
         return expected_yield
+
+    def get_average_charging_price(self) -> float:
+        """Get the average charging price in currency/kWh"""
+        energy_added = 0
+        total_charging_price = 0
+        for entry in self._schedule.values():
+            power = entry[self.KEY_POWER]
+            price_per_kwh = entry[self.KEY_PRICE]
+            if power < 0:
+                power = power * -1
+                energy_added += power
+                total_charging_price += power * price_per_kwh
+
+        if energy_added > 0:
+            return total_charging_price / energy_added
+        return 0
 
     def is_empty_plan(self) -> bool:
         """Return True if all power levels for the charge plan is 0"""
