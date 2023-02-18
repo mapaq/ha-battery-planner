@@ -51,9 +51,13 @@ class ChargePlan:
             return entry
         return self._schedule[hour_iso]
 
-    def get_power_for_hour(self, hour: datetime) -> int | float:
+    def get_power(self, hour: datetime) -> int:
         """Get the scheduled power value for the given hour"""
         return self.get(hour)[self.KEY_POWER]
+
+    def set_power(self, hour: datetime, power: int):
+        """Set power value for the given hour"""
+        self.get(hour)[self.KEY_POWER] = power
 
     def scheduled_hours(self) -> dict[str, dict[str, int | float]]:
         """Get all scheduled hours"""

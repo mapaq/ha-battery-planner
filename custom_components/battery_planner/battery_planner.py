@@ -138,12 +138,6 @@ class BatteryPlanner:
             key: val
             for key, val in sorted(hourly_prices.items(), key=lambda ele: ele[0])
         }
-        power_levels: dict[datetime, int] = {
-            key: 0
-            for key, val in sorted(
-                hourly_prices_sorted_by_hour.items(), key=lambda ele: ele[0]
-            )
-        }
         hourly_prices_sorted_by_lowest_price: dict[datetime, float] = {
             key: val
             for key, val in sorted(
@@ -159,23 +153,32 @@ class BatteryPlanner:
             )
         }
 
+        charge_plan: ChargePlan = _create_empty_charge_plan(hourly_prices)
+
+        now: datetime = datetime.now()
+        last_charged_hour = now
         last_charged_hour = self._charge_at_lowest_priced_hours(
             hourly_prices_sorted_by_highest_price,
             hourly_prices_sorted_by_lowest_price,
-            power_levels,
+            charge_plan,
+            last_charged_hour,
         )
 
+        price_margin: float = self._price_margin
+        if last_charged_hour == now:
+            # The battery was already charged, use price_margin + cheap_price as actual price margin
+            price_margin += self._cheap_price
         self._discharge_at_highest_priced_hours(
-            hourly_prices_sorted_by_highest_price, power_levels, last_charged_hour
+            hourly_prices_sorted_by_highest_price,
+            charge_plan,
+            last_charged_hour,
+            price_margin,
         )
-
-        charge_plan = _create_charge_plan(hourly_prices, power_levels)
 
         if charge_plan.is_empty_plan():
             self._charge_if_super_cheap_prices(
-                hourly_prices_sorted_by_lowest_price, power_levels
+                hourly_prices_sorted_by_lowest_price, charge_plan
             )
-            charge_plan = _create_charge_plan(hourly_prices, power_levels)
 
         return charge_plan
 
@@ -183,11 +186,9 @@ class BatteryPlanner:
         self,
         hourly_prices_sorted_by_highest_price: dict[datetime, float],
         hourly_prices_sorted_by_lowest_price: dict[datetime, float],
-        power_levels: dict[datetime, int],
+        charge_plan: ChargePlan,
+        last_charged_hour: datetime,
     ) -> datetime:
-
-        last_charged_hour: datetime = datetime.now()
-
         # Since we are creating one schedule for each hour, the power level is the
         # same as added energy for that hour, i.e. Power (W) during one hour = Energy (Wh)
         for (
@@ -202,32 +203,31 @@ class BatteryPlanner:
                     (charge_hour < discharge_hour)
                     and (discharge_price - charge_price > self._price_margin)
                     and (not self._battery.is_full())
-                    and (power_levels[charge_hour] == 0)
+                    and (charge_plan.get_power(charge_hour) == 0)
                 ):
-                    power_levels[charge_hour] = self._battery.charge_max()
+                    charge_plan.set_power(charge_hour, self._battery.charge_max())
                     last_charged_hour = charge_hour
         return last_charged_hour
 
     def _discharge_at_highest_priced_hours(
         self,
         hourly_prices_sorted_by_highest_price: dict[datetime, float],
-        power_levels: dict[datetime, int],
+        charge_plan: ChargePlan,
         last_charged_hour: datetime,
+        price_margin: float,
     ):
         for discharge_hour, price in hourly_prices_sorted_by_highest_price.items():
-            # FIXME: Won't discharge when charged at negative price and discharge price is below PRICE_MARGIN
-            # Maybe store the chargeing price as an attribute on sensor to use when not discharged in the same day
             if (
                 (self._battery.remaining_energy_above_lower_soc_limit() > 0)
-                and (price >= self._price_margin)
+                and (price >= price_margin)
                 and (discharge_hour > last_charged_hour)
             ):
-                power_levels[discharge_hour] = self._battery.discharge_max()
+                charge_plan.set_power(discharge_hour, self._battery.discharge_max())
 
     def _charge_if_super_cheap_prices(
         self,
         hourly_prices_sorted_by_lowest_price: dict[datetime, float],
-        power_levels: dict[datetime, int],
+        charge_plan: ChargePlan,
     ):
         for (
             charge_hour,
@@ -236,9 +236,9 @@ class BatteryPlanner:
             if (
                 (charge_price < self._cheap_price)
                 and (not self._battery.is_full())
-                and (power_levels[charge_hour] == 0)
+                and (charge_plan.get_power(charge_hour) == 0)
             ):
-                power_levels[charge_hour] = self._battery.charge_max()
+                charge_plan.set_power(self._battery.charge_max())
 
 
 def map_prices_to_hour(
@@ -281,8 +281,8 @@ def class_name_from_module_name(module_name: str) -> str:
     return class_name
 
 
-def _create_charge_plan(hourly_prices, power_levels) -> ChargePlan:
+def _create_empty_charge_plan(hourly_prices) -> ChargePlan:
     charge_plan = ChargePlan()
-    for hour, power in power_levels.items():
-        charge_plan.add(hour=hour, power=power, price=hourly_prices[hour])
+    for hour, price in hourly_prices.items():
+        charge_plan.add(hour=hour, power=0, price=price)
     return charge_plan

@@ -132,7 +132,7 @@ class BatteryScheduleSensor(SensorEntity):
         _LOGGER.debug("Update sensor Battery Schedule")
         self._charge_plan = await self._battery_planner.get_active_schedule()
         _LOGGER.debug("Received charge plan from API:\n%s", self._charge_plan)
-        self._attr_native_value = self._charge_plan.get_power_for_hour(datetime.now())
+        self._attr_native_value = self._charge_plan.get_power(datetime.now())
         self._expected_yield = self._charge_plan.expected_yield()
         self.async_write_ha_state()
 
