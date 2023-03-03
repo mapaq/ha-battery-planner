@@ -83,13 +83,6 @@ class Battery:
             self.remaining_energy_below_upper_soc_limit(), max_charge_power
         )
         self.energy += charge_power
-
-        # TODO: Possibly remove this functionality and allow some percents diff in actual charge
-        # if self.energy == self.capacity:
-        #     charge_power += self._extra_power_to_fully_charge_or_deplete_the_battery(
-        #         max_charge_power
-        #     )
-
         return int(-charge_power)
 
     def discharge_max(self) -> int:
@@ -102,13 +95,6 @@ class Battery:
             self.remaining_energy_above_lower_soc_limit(), max_discharge_power
         )
         self.energy -= discharge_power
-
-        # TODO: Possibly remove this functionality and allow some percents diff in actual discharge
-        # if self.remaining_energy_above_soc_limit() == 0:
-        #     discharge_power += self._extra_power_to_fully_charge_or_deplete_the_battery(
-        #         max_discharge_power
-        #     )
-
         return int(discharge_power)
 
     def remaining_energy_below_upper_soc_limit(self):
@@ -118,11 +104,3 @@ class Battery:
     def remaining_energy_above_lower_soc_limit(self):
         """The remaining amount of energy above lower soc limit"""
         return max(0, int(self.energy - (self.capacity * self._lower_soc_limit)))
-
-    def _extra_power_to_fully_charge_or_deplete_the_battery(
-        self, max_power: int
-    ) -> int:
-        """When charging and discharging there might be some minor difference between
-        the planned charging and the actual energy charged. Therefore we add some extra
-        power to help reach 100% when chargin or the SoC limit when discharging"""
-        return min(int(self.capacity * 0.05), max_power)

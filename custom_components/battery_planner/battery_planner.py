@@ -250,7 +250,7 @@ class BatteryPlanner:
                 and (not self._battery.is_full())
                 and (charge_plan.get_power(charge_hour) == 0)
             ):
-                charge_plan.set_power(self._battery.charge_max())
+                charge_plan.set_power(charge_hour, self._battery.charge_max())
 
 
 def map_prices_to_hour(
