@@ -55,6 +55,7 @@ class BatteryPlanner:
             _LOGGER.info("Battery was stopped")
         else:
             _LOGGER.error("Failed to stop battery")
+        await self.get_active_charge_plan(refresh=True)
 
     async def clear(self) -> None:
         """Clear the battery schedule"""
@@ -63,6 +64,7 @@ class BatteryPlanner:
             _LOGGER.info("Battery schedule was cleared")
         else:
             _LOGGER.error("Failed to clear the battery schedule")
+        await self.get_active_charge_plan(refresh=True)
 
     async def charge(self, battery_state_of_charge: float, power: int) -> None:
         """Charge the battery now"""
@@ -88,6 +90,7 @@ class BatteryPlanner:
             _LOGGER.info("Battery started charging with power %s", power)
         else:
             _LOGGER.error("Failed to start charging of the battery")
+        await self.get_active_charge_plan(refresh=True)
 
     async def reschedule(
         self,
