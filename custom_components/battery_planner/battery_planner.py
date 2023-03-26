@@ -48,6 +48,47 @@ class BatteryPlanner:
         self._latest_prices = {}
         self._battery_api = create_api_instance_from_secrets_file(hass)
 
+    async def stop(self) -> None:
+        """Stop the battery"""
+        stop_succeeded = await self._battery_api.stop()
+        if stop_succeeded:
+            _LOGGER.info("Battery was stopped")
+        else:
+            _LOGGER.error("Failed to stop battery")
+
+    async def clear(self) -> None:
+        """Clear the battery schedule"""
+        stop_succeeded = await self._battery_api.clear()
+        if stop_succeeded:
+            _LOGGER.info("Battery schedule was cleared")
+        else:
+            _LOGGER.error("Failed to clear the battery schedule")
+
+    async def charge(self, battery_state_of_charge: float, power: int) -> None:
+        """Charge the battery now"""
+        charge_plan = ChargePlan()
+        current_hour_dt = datetime.now().replace(minute=0)
+        self._battery.set_soc(battery_state_of_charge)
+
+        charge_power = min(self._battery.get_max_charge_power(), power)
+        charge_plan.charge(
+            hour=current_hour_dt,
+            power=charge_power,
+            price=None,
+        )
+
+        next_hour_dt = current_hour_dt + timedelta(hours=1)
+        while not self._battery.is_full():
+            self._battery.charge(power)
+            charge_plan.charge(hour=next_hour_dt, power=charge_power, price=None)
+            next_hour_dt = next_hour_dt + timedelta(hours=1)
+
+        charge_succeeded = await self._battery_api.schedule_battery(charge_plan)
+        if charge_succeeded:
+            _LOGGER.info("Battery started charging with power %s", power)
+        else:
+            _LOGGER.error("Failed to start charging of the battery")
+
     async def reschedule(
         self,
         battery_state_of_charge: float,
@@ -293,7 +334,7 @@ def class_name_from_module_name(module_name: str) -> str:
     return class_name
 
 
-def _create_empty_charge_plan(hourly_prices) -> ChargePlan:
+def _create_empty_charge_plan(hourly_prices: dict[datetime, float]) -> ChargePlan:
     charge_plan = ChargePlan()
     for hour, price in hourly_prices.items():
         charge_plan.add(hour=hour, power=0, price=price)

@@ -147,13 +147,14 @@ class SolarnetChargeSchedule:
         self._time_table["End"] = end
         return self
 
-    def get_weekday(self) -> int:
+    def get_weekday_index(self) -> int:
         """Get day index for the active weekday"""
         return self._weekday
 
     def set_weekday_index(self, weekday_index: int):
         """Set the active weekday index for this schedule"""
         self._weekday = weekday_index
+        return self
 
     def set_weekday_name(self, weekday_name: str):
         """Set the active weekday index based on solarnet weekday name for this schedule"""

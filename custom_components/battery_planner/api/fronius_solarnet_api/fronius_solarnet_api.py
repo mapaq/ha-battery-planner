@@ -17,8 +17,8 @@ class FroniusSolarnetApi(BatteryApiInterface):
     _TIMEOFUSE_URI = "/config/timeofuse"
     _TIMEOFUSE_JSON_OBJECT = "timeofuse"
 
-    _solarnet: DigestAuthRequest = None
-    _username: str = None
+    _solarnet: DigestAuthRequest
+    _username: str
 
     def __init__(self, secrets_json: dict[str:str], hass: HomeAssistant):
         super().__init__(secrets_json, hass)
@@ -51,10 +51,13 @@ class FroniusSolarnetApi(BatteryApiInterface):
         for hour_iso, entry in scheduled_hours.items():
             hour_dt = datetime.fromisoformat(hour_iso)
             power = entry[ChargePlan.KEY_POWER]
-            self._create_schedules_for_hour(solarnet_schedules, hour_dt, power)
+            self._add_schedules_for_hour(solarnet_schedules, hour_dt, power)
 
+        return await self._post_schedule(solarnet_schedules.values())
+
+    async def _post_schedule(self, solarnet_schedules: list[SolarnetChargeSchedule]):
         solarnet_schedules_json = []
-        for solarnet_schedule in solarnet_schedules.values():
+        for solarnet_schedule in solarnet_schedules:
             solarnet_schedules_json.append(solarnet_schedule.tojsondict())
 
         json_data = {self._TIMEOFUSE_JSON_OBJECT: solarnet_schedules_json}
@@ -64,7 +67,7 @@ class FroniusSolarnetApi(BatteryApiInterface):
 
         return response.status_code == 200
 
-    def _create_schedules_for_hour(
+    def _add_schedules_for_hour(
         self,
         solarnet_schedules: dict[datetime, SolarnetChargeSchedule],
         hour_dt: datetime,
@@ -90,8 +93,8 @@ class FroniusSolarnetApi(BatteryApiInterface):
         today_weekday = datetime.now().weekday()
         active_schedules = await self._get_solarnet_schedules()
         for active_schedule in active_schedules:
-            if today_weekday == active_schedule.get_weekday():
-                if active_schedule.get_hour() in todays_schedules.keys():
+            if today_weekday == active_schedule.get_weekday_index():
+                if active_schedule.get_hour() in todays_schedules:
                     todays_schedules[
                         active_schedule.get_hour().replace(second=1)
                     ] = active_schedule
@@ -119,3 +122,32 @@ class FroniusSolarnetApi(BatteryApiInterface):
                 SolarnetChargeSchedule.fromjsondict(schedule_data)
             )
         return solarnet_schedules
+
+    async def stop(self) -> bool:
+        """Stop the battery by scheduling 0 power for all times
+        Return True if successful"""
+        schedules = []
+        now = datetime.now()
+        for weekday_index in SolarnetChargeSchedule.WEEK_DAYS:
+            for hour in range(24):
+                hour_dt = now.replace(hour=hour, minute=0)
+                schedules.append(
+                    SolarnetChargeSchedule(hour_dt, 0)
+                    .set_schedule_type(
+                        SolarnetChargeSchedule.SCHEDULE_TYPE_DISCHARGE_MIN
+                    )
+                    .set_weekday_index(weekday_index)
+                )
+                schedules.append(
+                    SolarnetChargeSchedule(hour_dt, 0)
+                    .set_schedule_type(
+                        SolarnetChargeSchedule.SCHEDULE_TYPE_DISCHARGE_MAX
+                    )
+                    .set_weekday_index(weekday_index)
+                )
+        return await self._post_schedule(schedules)
+
+    async def clear(self) -> bool:
+        """Clear the battery schedule
+        Return True if successful"""
+        return await self._post_schedule([])

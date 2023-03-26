@@ -26,6 +26,20 @@ class ChargePlan:
             readable_entry.append(f"{hour}: {entry}")
         return str.join("\n", readable_entry)
 
+    def charge(self, hour: datetime, power: int, price: float | None = None) -> None:
+        """Add a new charging hour to the charge plan
+        hour - The hour as a datetime object
+        power - (W) To charge with
+        price - The electricity price for the given hour in SEK/kWh or other currency/energy"""
+        self.add(hour, -power, price)
+
+    def discharge(self, hour: datetime, power: int, price: float | None = None) -> None:
+        """Add a new discharging hour to the charge plan
+        hour - The hour as a datetime object
+        power - (W) To discharge with
+        price - The electricity price for the given hour in SEK/kWh or other currency/energy"""
+        self.add(hour, power, price)
+
     def add(self, hour: datetime, power: int, price: float | None = None) -> None:
         """Add a new hour to the charge plan
         hour - The hour as a datetime object

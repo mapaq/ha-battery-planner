@@ -9,9 +9,10 @@ class Battery:
     """Data class to hold information and charge level of the fictive battery
 
     capacity - (Wh) Total energy capacity of the battery
-    max_charge_power - (W) Maximum allowed charge power
-    max_discharge_power - (W) Maximum allowed discharge power
-    soc_limit - (%) Minimum allowed state of charge, e.g. 5% = 0.05"""
+    _max_charge_power - (W) Maximum allowed charge power
+    _max_discharge_power - (W) Maximum allowed discharge power
+    _lower_soc_limit - (%) Minimum allowed state of charge, e.g. 5% = 0.05
+    _upper_soc_limit - (%) Maximum allowed state of charge, e.g. 5% = 0.95"""
 
     _max_charge_power: int
     _max_discharge_power: int
@@ -56,13 +57,21 @@ class Battery:
         self._soc = soc
         self.energy = int(self.capacity * soc)
 
+    def get_max_charge_power(self) -> int:
+        """Get the max allowed charge power"""
+        return self._max_charge_power
+
+    def get_max_discharge_power(self) -> int:
+        """Get the max allowed discharge power"""
+        return self._max_discharge_power
+
     def min_energy_limit(self) -> int:
         """Minimum allowed energy level based on capacity and minimum SoC limit"""
         return int(self.capacity * self._lower_soc_limit)
 
     def is_full(self) -> bool:
         """Return True if the battery is fully charged"""
-        return self.energy == self.capacity
+        return self.energy >= self.capacity * self._upper_soc_limit
 
     def is_empty(self) -> bool:
         """Return True if the battery is below or equal to soc limit"""

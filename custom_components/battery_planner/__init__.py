@@ -27,7 +27,9 @@ If you have any issues with this you need to open an issue here:
 """
 
 
-async def _dry_setup(hass: HomeAssistant, hass_config: Config) -> bool:
+async def _create_battery_planner_and_add_to_hass(
+    hass: HomeAssistant, hass_config: Config
+) -> bool:
     """Set up using yaml config file."""
     if DOMAIN not in hass.data:
 
@@ -54,28 +56,41 @@ async def _dry_setup(hass: HomeAssistant, hass_config: Config) -> bool:
 async def async_setup(hass: HomeAssistant, hass_config: Config) -> bool:
     """Set up using yaml config file."""
 
-    # TODO: Make a "stop" service, the stop service is handled differently
-    # by each API, so just call "stop" to the API to make the battery stop charging
-    # and keep being stopped until started or rescheduled again
-
-    # TODO: Make a "start" service that will charge the battery up to 100% and then set to idle (0 W)
-
-    # TODO: Make a class that handles services and is provided the hass object at init
+    instance_created = await _create_battery_planner_and_add_to_hass(hass, hass_config)
+    battery_planner: BatteryPlanner = hass.data[DOMAIN]
 
     async def service_call_reschedule(service_call):
         """Get future prices and create new schedule"""
-
         _LOGGER.debug("%s: service_call_reschedule", DOMAIN)
         battery_soc: float = service_call.data.get("battery_soc", 0.0)
-        prices_today: float = service_call.data.get("prices_today", None)
-        prices_tomorrow: float = service_call.data.get("prices_tomorrow", None)
-        battery_planner: BatteryPlanner = hass.data[DOMAIN]
+        prices_today: float = service_call.data.get("prices_today", [])
+        prices_tomorrow: float = service_call.data.get("prices_tomorrow", [])
         await battery_planner.reschedule(
             battery_state_of_charge=battery_soc,
             prices_today=prices_today,
             prices_tomorrow=prices_tomorrow,
         )
 
-    hass.services.async_register(DOMAIN, "reschedule", service_call_reschedule)
+    async def service_call_stop(service_call):
+        """Stop the battery"""
+        _LOGGER.debug("%s: service_call_stop", DOMAIN)
+        await battery_planner.stop()
 
-    return await _dry_setup(hass, hass_config)
+    async def service_call_clear(service_call):
+        """Stop the battery"""
+        _LOGGER.debug("%s: service_call_clear", DOMAIN)
+        await battery_planner.clear()
+
+    async def service_call_charge(service_call):
+        """Charge the battery now"""
+        battery_soc: float = service_call.data.get("battery_soc", 0.0)
+        power: float = service_call.data.get("power", 4000)
+        _LOGGER.debug("%s: service_call_charge", DOMAIN)
+        await battery_planner.charge(battery_soc, power)
+
+    hass.services.async_register(DOMAIN, "reschedule", service_call_reschedule)
+    hass.services.async_register(DOMAIN, "stop", service_call_stop)
+    hass.services.async_register(DOMAIN, "clear", service_call_clear)
+    hass.services.async_register(DOMAIN, "charge", service_call_charge)
+
+    return instance_created

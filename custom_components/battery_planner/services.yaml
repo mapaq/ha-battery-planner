@@ -1,5 +1,5 @@
 reschedule:
-  name: Reschedule Battery
+  name: Reschedule
   description: Creates a new schedule for the battery based on electricity price
   fields:
     battery_soc:
@@ -23,3 +23,30 @@ reschedule:
       advanced: false
       example: "{{ state_attr('sensor.nordpool', 'tomorrow') }}"
       default: "{{ state_attr('sensor.nordpool', 'tomorrow') }}"
+
+stop:
+  name: Stop
+  description: Stops the battery
+
+clear:
+  name: Clear
+  description: Clear the battery schedule
+
+charge:
+  name: Charge
+  description: Charge the battery now
+  fields:
+    battery_soc:
+      name: Battery State of Charge
+      description: The current state of charge (SoC) of the battery
+      required: true
+      advanced: false
+      example: 0.05
+      default: 0.05
+    power:
+      name: Charge power
+      description: The power (W) to charge the battery with
+      required: true
+      advanced: false
+      example: 4000
+      default: 4000

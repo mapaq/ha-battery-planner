@@ -23,3 +23,15 @@ class BatteryApiInterface(ABC):
     @abstractmethod
     async def get_active_charge_plan(cls) -> ChargePlan:
         """Return the active charge plan, None if the request failed"""
+
+    @classmethod
+    @abstractmethod
+    async def stop(cls) -> bool:
+        """Stop the battery
+        Return True if successful"""
+
+    @classmethod
+    @abstractmethod
+    async def clear(cls) -> bool:
+        """Clear the battery schedule
+        Return True if successful"""

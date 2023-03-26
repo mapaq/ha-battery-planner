@@ -95,7 +95,6 @@ class BatteryScheduleSensor(SensorEntity):
     @property
     def should_poll(self) -> bool:
         """No need to poll. Coordinator notifies entity of updates."""
-        # TODO: Probably needs to poll, or create a coordinator to get active schedule
         return False
 
     @property
