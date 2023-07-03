@@ -13,7 +13,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 NAME = DOMAIN
-VERSION = "0.1.1"  # TODO: Get version from manifest.json
+VERSION = "0.1.2"  # TODO: Get version from manifest.json
 ISSUEURL = "https://github.com/mapaq/ha-battery-planner/issues"
 
 STARTUP = f"""
