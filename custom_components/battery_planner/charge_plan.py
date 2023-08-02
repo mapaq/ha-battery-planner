@@ -3,6 +3,8 @@
 import logging
 from datetime import datetime, time
 
+from .charge_hour import ChargeHour
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -12,7 +14,7 @@ class ChargePlan:
     KEY_POWER = "power"
     KEY_PRICE = "price"
 
-    _schedule: dict[str, dict[str, int | float]]
+    _schedule: dict[str, ChargeHour]
 
     def __init__(self):
         self._schedule = {}
@@ -22,36 +24,20 @@ class ChargePlan:
 
     def __str__(self):
         readable_entry = []
-        for hour, entry in self._schedule.items():
-            readable_entry.append(f"{hour}: {entry}")
+        for hour, charge_hour in self._schedule.items():
+            readable_entry.append(f"{hour}: {charge_hour}")
         return str.join("\n", readable_entry)
 
-    def charge(self, hour: datetime, power: int, price: float | None = None) -> None:
-        """Add a new charging hour to the charge plan
-        hour - The hour as a datetime object
-        power - (W) To charge with
-        price - The electricity price for the given hour in SEK/kWh or other currency/energy"""
-        self.add(hour, -power, price)
+    def add_charge_hour(self, charge_hour: ChargeHour) -> None:
+        """Add a new hour from a ChargeHour object"""
+        self._schedule[hour_iso_string(charge_hour.get_hour_dt())] = charge_hour.clone()
 
-    def discharge(self, hour: datetime, power: int, price: float | None = None) -> None:
-        """Add a new discharging hour to the charge plan
-        hour - The hour as a datetime object
-        power - (W) To discharge with
-        price - The electricity price for the given hour in SEK/kWh or other currency/energy"""
-        self.add(hour, power, price)
+    def is_scheduled(self, hour: datetime) -> bool:
+        """Check if the hour is in the plan"""
+        return hour_iso_string(hour) in self._schedule
 
-    def add(self, hour: datetime, power: int, price: float | None = None) -> None:
-        """Add a new hour to the charge plan
-        hour - The hour as a datetime object
-        power - (W) Negative value means charge, positive means discharge
-        price - The electricity price for the given hour in SEK/kWh or other currency/energy"""
-        entry = {}
-        entry[self.KEY_POWER] = power
-        entry[self.KEY_PRICE] = price
-        self._schedule[hour_iso_string(hour)] = entry
-
-    def get(self, hour: datetime) -> dict[str, int | float]:
-        """Get power and price for the hour in a datetime object"""
+    def get(self, hour: datetime) -> ChargeHour:
+        """Get ChargeHour object"""
         hour_iso = hour_iso_string(hour)
         if hour_iso not in self._schedule:
             _LOGGER.warning(
@@ -59,69 +45,81 @@ class ChargePlan:
                 "Returning 0 power and 0.0 price",
                 hour_iso,
             )
-            entry = {}
-            entry[self.KEY_POWER] = 0
-            entry[self.KEY_PRICE] = 0.0
-            return entry
+            return ChargeHour(hour.hour, 0.0, 0.0, 0)
         return self._schedule[hour_iso]
 
     def get_power(self, hour: datetime) -> int:
-        """Get the scheduled power value for the given hour"""
-        return self.get(hour)[self.KEY_POWER]
+        """Get the scheduled power value for the given hour
+        hour - The hour as a datetime object
+        Return power (W) Negative value is charge (consuming), positive is discharge (producing)
+        """
+        return int(self.get(hour).get_power_watts())
 
     def set_power(self, hour: datetime, power: int):
-        """Set power value for the given hour"""
-        self.get(hour)[self.KEY_POWER] = power
+        """Set power value for the given hour
+        hour - The hour as a datetime object
+        power - (W) Negative value means charge (consuming), positive means discharge (producing)
+        """
+        self.get(hour).set_power_watts(power)
 
-    def get_price(self, hour: datetime) -> int:
+    def get_price(self, hour: datetime) -> float:
         """Get the price/kWh for the given hour"""
-        return self.get(hour)[self.KEY_PRICE]
+        return self.get(hour).get_active_price()
 
     def set_price(self, hour: datetime, price: float):
         """Set the price/kWh for the given hour"""
-        self.get(hour)[self.KEY_PRICE] = price
+        # TODO: Change to two separate methods? Check if it must be used.
+        if self.get(hour).get_power_watts() <= 0:
+            self.get(hour).set_import_price(price)
+        else:
+            self.get(hour).set_export_price(price)
 
-    def scheduled_hours(self) -> dict[str, dict[str, int | float]]:
+    def scheduled_hours(self) -> dict[str, ChargeHour]:
         """Get all scheduled hours"""
         return self._schedule
 
-    def expected_yield(self) -> float | None:
+    def expected_yield(self) -> float:
         """Get expected financial yield of the planned charging and discharging"""
         expected_yield = 0
-        for entry in self._schedule.values():
-            power = entry[self.KEY_POWER]
-            price = entry[self.KEY_PRICE]
+        for charge_hour in self._schedule.values():
+            power_kw = charge_hour.get_power_watts() / 1000
+            price = charge_hour.get_active_price()
             if price is None:
                 # Price might be None when plan is fetched from inverter
-                # -> Return None since the price is not valid
-                return None
-            # TODO: Make power unit and price/energy unit adjustable by sensor settings in yaml
-            expected_yield += (power / 1000) * price
+                # -> Return 0.0
+                return 0.0
+            expected_yield += power_kw * price
         return expected_yield
 
     def get_average_charging_price(self) -> float:
         """Get the average charging price in currency/kWh"""
         energy_added = 0
         total_charging_price = 0
-        for entry in self._schedule.values():
-            power = entry[self.KEY_POWER]
-            price_per_kwh = entry[self.KEY_PRICE]
-            if power < 0:
-                power = power * -1
-                energy_added += power
-                total_charging_price += power * price_per_kwh
+        for charge_hour in self._schedule.values():
+            power_watts = charge_hour.get_power_watts()
+            price_per_kwh = charge_hour.get_active_price()
+            if power_watts < 0:
+                power_watts = power_watts * -1
+                energy_added += power_watts
+                total_charging_price += (power_watts / 1000) * price_per_kwh
 
         if energy_added > 0:
-            return total_charging_price / energy_added
+            return total_charging_price / (energy_added / 1000)
         return 0
 
     def is_empty_plan(self) -> bool:
         """Return True if all power levels for the charge plan is 0"""
-        for entry in self._schedule.values():
-            power = entry[self.KEY_POWER]
-            if power != 0:
+        for charge_hour in self._schedule.values():
+            if charge_hour.get_power_watts() != 0:
                 return False
         return True
+
+    def clone(self):
+        """Create a new object as a clone of this instance"""
+        cloned_charge_plan = ChargePlan()
+        for charge_hour in self._schedule.values():
+            cloned_charge_plan.add_charge_hour(charge_hour.clone())
+        return cloned_charge_plan
 
 
 def hour_iso_string(hour: datetime) -> str:
