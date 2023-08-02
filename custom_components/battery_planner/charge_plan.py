@@ -48,6 +48,13 @@ class ChargePlan:
             return ChargeHour(hour.hour, 0.0, 0.0, 0)
         return self._schedule[hour_iso]
 
+    def get_by_index(self, hour: int) -> ChargeHour:
+        """Get charge_hour by index"""
+        for charge_hour in self._schedule.values():
+            if charge_hour.get_hour() == hour:
+                return charge_hour
+        raise IndexError(f"Hour with index {hour} not found")
+
     def get_power(self, hour: datetime) -> int:
         """Get the scheduled power value for the given hour
         hour - The hour as a datetime object
@@ -88,7 +95,7 @@ class ChargePlan:
                 # Price might be None when plan is fetched from inverter
                 # -> Return 0.0
                 return 0.0
-            expected_yield += power_kw * price
+            expected_yield = round(expected_yield + (power_kw * price), 2)
         return expected_yield
 
     def get_average_charging_price(self) -> float:
