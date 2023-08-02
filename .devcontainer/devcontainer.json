@@ -6,12 +6,13 @@
 	"appPort": [
 		"9123:8123"
 	],
-	"postCreateCommand": "container install",
+	"postCreateCommand": "container install; pip install pytest",
 	"extensions": [
 		"ms-python.python",
 		"github.vscode-pull-request-github",
 		"ryanluker.vscode-coverage-gutters",
-		"ms-python.vscode-pylance"
+		"ms-python.vscode-pylance",
+		"ms-python.black-formatter"
 	],
 	"settings": {
 		"files.eol": "\n",
@@ -29,6 +30,9 @@
 		"python.pythonPath": "/usr/bin/python3",
 		"python.analysis.autoSearchPaths": false,
 		"python.linting.pylintEnabled": true,
+		"python.linting.pylintArgs": [
+			"--ignore-patterns=test_.*?py"
+		],
 		"python.linting.enabled": true,
 		"python.formatting.provider": "black",
 		"editor.formatOnPaste": false,

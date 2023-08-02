@@ -81,7 +81,7 @@ class BatteryScheduleSensor(SensorEntity):
         self._battery_planner = battery_planner
         self._hass = hass
 
-        self._charge_plan = ChargePlan()
+        self._charge_plan: ChargePlan = ChargePlan()
         self._expected_yield = None
 
         self._attr_device_class = SensorDeviceClass.POWER
