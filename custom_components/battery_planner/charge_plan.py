@@ -81,7 +81,7 @@ class ChargePlan:
         else:
             self.get(hour).set_export_price(price)
 
-    def scheduled_hours(self) -> dict[str, ChargeHour]:
+    def get_scheduled_hours(self) -> dict[str, ChargeHour]:
         """Get all scheduled hours"""
         return self._schedule
 

@@ -8,6 +8,7 @@ from .digest_auth_request import DigestAuthRequest
 from .solarnet_charge_schedule import SolarnetChargeSchedule
 from ...battery_api_interface import BatteryApiInterface
 from ...charge_plan import ChargePlan
+from ...charge_hour import ChargeHour
 
 
 class FroniusSolarnetApi(BatteryApiInterface):
@@ -20,7 +21,7 @@ class FroniusSolarnetApi(BatteryApiInterface):
     _solarnet: DigestAuthRequest
     _username: str
 
-    def __init__(self, secrets_json: dict[str:str], hass: HomeAssistant):
+    def __init__(self, secrets_json: dict[str, str], hass: HomeAssistant):
         super().__init__(secrets_json, hass)
         host = f"http://{secrets_json.get('host')}"
         username = secrets_json.get("username")
@@ -47,11 +48,13 @@ class FroniusSolarnetApi(BatteryApiInterface):
             datetime, SolarnetChargeSchedule
         ] = await self._active_schedules_for_today()
 
-        scheduled_hours = new_charge_plan.scheduled_hours()
-        for hour_iso, entry in scheduled_hours.items():
-            hour_dt = datetime.fromisoformat(hour_iso)
-            power = entry[ChargePlan.KEY_POWER]
-            self._add_schedules_for_hour(solarnet_schedules, hour_dt, power)
+        scheduled_hours: dict[str, ChargeHour] = new_charge_plan.get_scheduled_hours()
+        for hour_iso, charge_hour in scheduled_hours.items():
+            self._add_schedules_for_hour(
+                solarnet_schedules,
+                charge_hour.get_hour_dt(),
+                charge_hour.get_power_watts(),
+            )
 
         return await self._post_schedule(solarnet_schedules.values())
 
@@ -109,7 +112,13 @@ class FroniusSolarnetApi(BatteryApiInterface):
 
         charge_plan = ChargePlan()
         for solarnet_schedule in active_schedules:
-            charge_plan.add(solarnet_schedule.get_hour(), solarnet_schedule.get_power())
+            charge_hour = ChargeHour(
+                solarnet_schedule.get_hour().hour,
+                0.0,
+                0.0,
+                solarnet_schedule.get_power(),
+            )
+            charge_plan.add_charge_hour(charge_hour)
 
         return charge_plan
 
