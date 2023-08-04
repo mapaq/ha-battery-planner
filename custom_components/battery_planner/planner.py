@@ -42,43 +42,29 @@ class Planner:
 
         Returns a plan with 0 W for all hours if the return is to low"""
 
-        # charge_hours = _map_prices_to_hour(import_prices, export_prices)
-        # charge_plan = ChargePlan()
-
-        # for i in range(len(charge_hours) - 1):
-        #     if charge_hours[i].get_import_price() < charge_hours[i + 1].get_import_price():
-        #         self._charge_battery(charge_plan, battery, charge_hours[i])
-
         now = datetime.now()
         today_midnight = datetime.combine(now.date(), time(hour=0))
         empty_charge_plan = _empty_charge_plan(
             _map_prices_to_hour(import_prices, export_prices)
         )
-        charge_plans: list[ChargePlan] = []
-        best_charge_plan = self._create_charge_plans(
-            charge_plans, empty_charge_plan, today_midnight, battery, "-"
+        best_plans = {"best": empty_charge_plan.clone()}
+        self._create_charge_plans(
+            best_plans, empty_charge_plan, today_midnight, battery
         )
 
-        best_charge_plan = _find_best_charge_plan(charge_plans)
-
-        return best_charge_plan
+        return best_plans["best"]
 
     def _create_charge_plans(
         self,
-        charge_plans: list[ChargePlan],
+        best_plans: dict[str, ChargePlan],
         charge_plan: ChargePlan,
         hour_dt: datetime,
         battery: Battery,
-        tree: str,
-    ) -> ChargePlan:
-        # print("\nbefore, tree = " + tree)
-        # print(charge_plan)
-        # print(f"{battery.get_energy()} : {battery.is_full()}")
+    ):
         if not charge_plan.is_scheduled(hour_dt):
-            # print("returning")
-            # TODO: Could just set the currently best plan right here, update if better then current
-            charge_plans.append(charge_plan.clone())
-            return charge_plan
+            if charge_plan.expected_yield() > best_plans["best"].expected_yield():
+                best_plans["best"] = charge_plan.clone()
+            return
 
         charge_hour = charge_plan.get(hour_dt)
         next_hour_dt = hour_dt + timedelta(hours=1)
@@ -92,76 +78,36 @@ class Planner:
         charge_next_hour_plan = charge_plan.clone()
         idle_next_hour_plan = charge_plan.clone()
         discharge_next_hour_plan = charge_plan.clone()
-        # if battery.is_full():
-        #     print(charge_plan)
-        #     print(f"{battery.get_energy()} : {battery.is_full()}")
-        #     print(f"{charged_battery.get_energy()} : {charged_battery.is_full()}")
+
         if not charged_battery.is_full():
-            # print("\nnot full, charging, tree = " + tree)
-            # print(charge_plan)
-            # print(f"{battery.get_energy()} : {battery.is_full()}")
-            # print(f"{charged_battery.get_energy()} : {charged_battery.is_full()}")
-            ch = charge_hour.clone()
-            charged_battery.charge_max_power_for_one_hour(ch)
-            charge_next_hour_plan.add_charge_hour(ch)
-            # print(charge_next_hour_plan)
-            # print(f"{charged_battery.get_energy()} : {charged_battery.is_full()}")
-            charge_next_hour_plan = self._create_charge_plans(
-                charge_plans,
+            hour_to_charge = charge_hour.clone()
+            charged_battery.charge_max_power_for_one_hour(hour_to_charge)
+            charge_next_hour_plan.add_charge_hour(hour_to_charge)
+            self._create_charge_plans(
+                best_plans,
                 charge_next_hour_plan.clone(),
                 next_hour_dt,
                 charged_battery.clone(),
-                tree + "c",
             )
 
-        # print("\nidle, tree = " + tree)
-        # print(charge_plan)
-        # print(f"{battery.get_energy()} : {battery.is_full()}")
-        idle_next_hour_plan = self._create_charge_plans(
-            charge_plans,
+        self._create_charge_plans(
+            best_plans,
             idle_next_hour_plan.clone(),
             next_hour_dt,
             battery.clone(),
-            tree + "i",
         )
 
         discharged_battery = battery.clone()
         if not discharged_battery.is_empty():
-            # print("\nnot empty, discharging, tree = " + tree)
-            # print(f"{battery.get_energy()} : {battery.is_full()}")
-            # print(discharge_next_hour_plan)
-            # print(f"{discharged_battery.get_energy()} : {charged_battery.is_full()}")
-            ch = charge_hour.clone()
-            discharged_battery.discharge_max_power_for_one_hour(ch)
-            discharge_next_hour_plan.add_charge_hour(ch)
-            discharge_next_hour_plan = self._create_charge_plans(
-                charge_plans,
+            hour_to_discharge = charge_hour.clone()
+            discharged_battery.discharge_max_power_for_one_hour(hour_to_discharge)
+            discharge_next_hour_plan.add_charge_hour(hour_to_discharge)
+            self._create_charge_plans(
+                best_plans,
                 discharge_next_hour_plan.clone(),
                 next_hour_dt,
                 discharged_battery.clone(),
-                tree + "d",
             )
-
-        # best_charge_plan = idle_next_hour_plan
-        # if discharge_next_hour_plan is not None and (discharge_next_hour_plan.expected_yield() > idle_next_hour_plan.expected_yield()):
-        #     best_charge_plan = discharge_next_hour_plan
-        # elif charge_next_hour_plan is not None and (charge_next_hour_plan.expected_yield() > idle_next_hour_plan.expected_yield()):
-        #     best_charge_plan = charge_next_hour_plan
-        # elif charge_next_hour_plan is not None and discharge_next_hour_plan is not None and (charge_next_hour_plan.expected_yield() > discharge_next_hour_plan.expected_yield()):
-        #     best_charge_plan = charge_next_hour_plan
-        best_charge_plan = discharge_next_hour_plan
-        if (
-            idle_next_hour_plan.expected_yield()
-            > discharge_next_hour_plan.expected_yield()
-        ):
-            best_charge_plan = idle_next_hour_plan
-        elif (
-            charge_next_hour_plan.expected_yield()
-            > idle_next_hour_plan.expected_yield()
-        ):
-            best_charge_plan = charge_next_hour_plan
-
-        return best_charge_plan
 
 
 def _map_prices_to_hour(
