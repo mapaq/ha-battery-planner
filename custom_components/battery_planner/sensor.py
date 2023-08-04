@@ -122,7 +122,7 @@ class BatteryScheduleSensor(SensorEntity):
     def extra_state_attributes(self) -> dict[str, object]:
         return {
             "currency": self._currency,
-            "schedule": self._charge_plan.scheduled_hours(),
+            "schedule": self._charge_plan.get_scheduled_hours(),
             "expected_yield": self._expected_yield,
         }
 
