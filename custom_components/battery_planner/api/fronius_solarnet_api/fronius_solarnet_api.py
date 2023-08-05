@@ -24,8 +24,8 @@ class FroniusSolarnetApi(BatteryApiInterface):
     def __init__(self, secrets_json: dict[str, str], hass: HomeAssistant):
         super().__init__(secrets_json, hass)
         host = f"http://{secrets_json.get('host')}"
-        username = secrets_json.get("username")
-        password = secrets_json.get("password")
+        username = str(secrets_json.get("username"))
+        password = str(secrets_json.get("password"))
         self._solarnet = DigestAuthRequest(host, username, password, hass)
         self._username = username
 
@@ -56,7 +56,7 @@ class FroniusSolarnetApi(BatteryApiInterface):
                 charge_hour.get_power_watts(),
             )
 
-        return await self._post_schedule(solarnet_schedules.values())
+        return await self._post_schedule(list(solarnet_schedules.values()))
 
     async def _post_schedule(self, solarnet_schedules: list[SolarnetChargeSchedule]):
         solarnet_schedules_json = []
