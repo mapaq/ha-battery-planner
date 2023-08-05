@@ -58,7 +58,7 @@ class TestPlanner:
         )
 
     @pytest.mark.parametrize(
-        "prices",
+        "data",
         [
             short_price_series_with_1_cycle,
             short_price_series_with_2_cycles,
@@ -70,14 +70,44 @@ class TestPlanner:
         self,
         planner: Planner,
         battery_one_kw_one_kwh: Battery,
-        prices: dict[str, list[float]],
+        data: dict[str, list[float]],
     ):
         charge_plan = planner.create_price_arbitrage_plan(
             battery_one_kw_one_kwh,
-            prices["import"],
-            prices["export"],
+            data["import"],
+            data["export"],
         )
-        assert charge_plan.expected_yield() == prices["yield"], f"\n{charge_plan}"
-        if "plan" in prices:
-            for hour, power in enumerate(prices["plan"]):
+        assert charge_plan.expected_yield() == data["yield"], f"\n{charge_plan}"
+        if "plan" in data:
+            for hour, power in enumerate(data["plan"]):
+                assert charge_plan.get_by_index(hour).get_power_watts() == power
+
+    @pytest.mark.parametrize(
+        "data",
+        [
+            short_price_series_with_one_cycle_battery_charged_1,
+            short_price_series_with_one_cycle_battery_charged_2,
+            short_price_series_with_one_cycle_battery_charged_3,
+        ],
+    )
+    def test_charge_cost_for_already_charged_battery(
+        self,
+        planner: Planner,
+        battery_one_kw_one_kwh: Battery,
+        data: dict[str, list[float]],
+    ):
+        battery_one_kw_one_kwh.set_energy(int(data["battery_energy"][0]))
+        battery_one_kw_one_kwh.set_average_charge_cost(data["average_charge_cost"][0])
+        charge_plan = planner.create_price_arbitrage_plan(
+            battery_one_kw_one_kwh,
+            data["import"],
+            data["export"],
+        )
+        assert (
+            charge_plan.expected_yield()
+            - battery_one_kw_one_kwh.get_average_charge_cost()
+            == data["yield"][0]
+        ), f"\n{charge_plan}"
+        if "plan" in data:
+            for hour, power in enumerate(data["plan"]):
                 assert charge_plan.get_by_index(hour).get_power_watts() == power

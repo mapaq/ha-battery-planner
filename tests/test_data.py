@@ -7,6 +7,33 @@ short_price_series_with_1_cycle = {
     "plan": [0, -1000, 1000, 0],
 }
 
+short_price_series_with_one_cycle_battery_charged_1 = {
+    "import": [3.0, 2.0, 4.0, 4.0],
+    "export": [1.0, 1.0, 3.0, 1.0],
+    "yield": [2.0],
+    "plan": [0, 0, 1000, 0],
+    "battery_energy": [1000],
+    "average_charge_cost": [1.0],
+}
+
+short_price_series_with_one_cycle_battery_charged_2 = {
+    "import": [5.0, 2.0, 4.0, 4.0],
+    "export": [4.0, 1.0, 3.0, 1.0],
+    "yield": [4.0],
+    "plan": [1000, -1000, 1000, 0],
+    "battery_energy": [1000],
+    "average_charge_cost": [1.0],
+}
+
+short_price_series_with_one_cycle_battery_charged_3 = {
+    "import": [5.0, 2.0, 6.0, 4.0],
+    "export": [4.0, 1.0, 5.0, 1.0],
+    "yield": [1.0],
+    "plan": [0, 0, 1000, 0],
+    "battery_energy": [1000],
+    "average_charge_cost": [4.0],
+}
+
 short_price_series_with_2_cycles = {
     "import": [3.0, 2.0, 4.0, 1.0, 5.0],
     "export": [1.0, 1.0, 3.0, 2.0, 4.0],
