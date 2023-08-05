@@ -128,6 +128,10 @@ class ChargePlan:
             cloned_charge_plan.add_charge_hour(charge_hour.clone())
         return cloned_charge_plan
 
+    def len(self):
+        """Get the length of the charge plan, i.e. the number of ChargeHours"""
+        return len(self.get_scheduled_hours())
+
 
 def hour_iso_string(hour: datetime) -> str:
     """Get string representation of the hour as ISO format"""
