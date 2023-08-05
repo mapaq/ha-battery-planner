@@ -2,7 +2,6 @@
 
 import logging
 from datetime import datetime, time, timedelta
-from typing import Optional
 
 from .charge_plan import ChargePlan
 from .battery import Battery
@@ -78,15 +77,12 @@ class Planner:
         idle_next_hour_plan = None
         discharge_next_hour_plan = None
 
-        charged_battery = battery.clone()
-
         charge_next_hour_plan = charge_plan.clone()
         idle_next_hour_plan = charge_plan.clone()
         discharge_next_hour_plan = charge_plan.clone()
 
-        if not charged_battery.is_full() and _lowest_price_before_next_discharge(
-            charge_hour, charge_plan
-        ):
+        charged_battery = battery.clone()
+        if _is_possible_charge_hour(charge_plan, charge_hour, charged_battery):
             hour_to_charge = charge_hour.clone()
             charged_battery.charge_max_power_for_one_hour(hour_to_charge)
             charge_next_hour_plan.add_charge_hour(hour_to_charge)
@@ -108,11 +104,9 @@ class Planner:
 
         # TODO: Handle special case when battery is already charged.
         # The first hour can then be a discharge hour.
+        # It may be enough to compare to average_charge_price instead of previous hours
         discharged_battery = battery.clone()
-        if (
-            not discharged_battery.is_empty()
-            and _export_price_is_larger_than_previous_import(charge_hour, charge_plan)
-        ):
+        if _is_possible_discharge_hour(charge_plan, charge_hour, discharged_battery):
             hour_to_discharge = charge_hour.clone()
             discharged_battery.discharge_max_power_for_one_hour(hour_to_discharge)
             discharge_next_hour_plan.add_charge_hour(hour_to_discharge)
@@ -149,28 +143,65 @@ def _empty_charge_plan(charge_hours: list[ChargeHour]) -> ChargePlan:
     return charge_plan
 
 
-def _lowest_price_before_next_discharge(
+def _is_possible_charge_hour(
+    charge_plan: ChargePlan, charge_hour: ChargeHour, battery: Battery
+):
+    return not battery.is_full() and _is_lowest_price_before_next_discharge(
+        charge_hour, charge_plan
+    )
+
+
+def _is_lowest_price_before_next_discharge(
     charge_hour: ChargeHour, charge_plan: ChargePlan
 ) -> bool:
-    charge_hour_index = charge_hour.get_hour()
+    index = charge_hour.get_hour()
     cheapest_charge_hour = charge_hour
-    discharge_hour = None
+    next_possible_discharge_hour = None
 
-    for index in range(charge_hour_index + 1, len(charge_plan.get_scheduled_hours())):
+    for index in range(index + 1, len(charge_plan.get_scheduled_hours())):
         next_hour = charge_plan.get_by_index(index)
         if next_hour.get_export_price() > cheapest_charge_hour.get_import_price():
-            discharge_hour = next_hour
+            next_possible_discharge_hour = next_hour
             break
-        elif next_hour.get_import_price() < cheapest_charge_hour.get_import_price():
+        if next_hour.get_import_price() < cheapest_charge_hour.get_import_price():
             cheapest_charge_hour = next_hour
 
-    if discharge_hour is None:
+    if next_possible_discharge_hour is None:
         return False
-    else:
-        return charge_hour.get_hour() == cheapest_charge_hour.get_hour()
+
+    return charge_hour.get_hour() == cheapest_charge_hour.get_hour()
 
 
-def _export_price_is_larger_than_previous_import(
+def _is_possible_discharge_hour(
+    charge_plan: ChargePlan, charge_hour: ChargeHour, battery: Battery
+):
+    return (
+        not battery.is_empty()
+        and _export_price_is_larger_than_a_previous_import_price(
+            charge_hour, charge_plan
+        )
+        and _is_highest_price_before_next_charge(charge_hour, charge_plan)
+    )
+
+
+def _is_highest_price_before_next_charge(
+    charge_hour: ChargeHour, charge_plan: ChargePlan
+) -> bool:
+    index = charge_hour.get_hour()
+    best_discharge_hour = charge_hour
+
+    for index in range(index + 1, len(charge_plan.get_scheduled_hours())):
+        next_hour = charge_plan.get_by_index(index)
+        if _is_lowest_price_before_next_discharge(next_hour, charge_plan):
+            break
+        if next_hour.get_export_price() > best_discharge_hour.get_export_price():
+            best_discharge_hour = next_hour
+
+    return charge_hour.get_hour() == best_discharge_hour.get_hour()
+
+
+# TODO: Replace with "_export_price_is_larger_than_average_charge_cost" for the battery
+def _export_price_is_larger_than_a_previous_import_price(
     discharge_hour: ChargeHour, charge_plan: ChargePlan
 ) -> bool:
     possible_discharge_hour_index = discharge_hour.get_hour()
