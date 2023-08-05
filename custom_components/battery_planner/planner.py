@@ -53,7 +53,7 @@ class Planner:
             best_plans, empty_charge_plan, today_midnight, battery, count
         )
 
-        # print(f"Number of plans created: {count[0]}") # TODO: Remove when finished
+        # print(f"Number of plans created: {count[0]}")  # TODO: Remove when finished
         return best_plans["best"]
 
     def _create_charge_plans(
@@ -146,8 +146,10 @@ def _empty_charge_plan(charge_hours: list[ChargeHour]) -> ChargePlan:
 def _is_possible_charge_hour(
     charge_plan: ChargePlan, charge_hour: ChargeHour, battery: Battery
 ):
-    return not battery.is_full() and _is_lowest_price_before_next_discharge(
-        charge_hour, charge_plan
+    return (
+        not battery.is_full()
+        and _is_lowest_price_before_next_discharge(charge_hour, charge_plan)
+        and _is_local_min_import_price(charge_hour, charge_plan)
     )
 
 
@@ -158,7 +160,7 @@ def _is_lowest_price_before_next_discharge(
     cheapest_charge_hour = charge_hour
     next_possible_discharge_hour = None
 
-    for index in range(index + 1, len(charge_plan.get_scheduled_hours())):
+    for index in range(index + 1, charge_plan.len()):
         next_hour = charge_plan.get_by_index(index)
         if next_hour.get_export_price() > cheapest_charge_hour.get_import_price():
             next_possible_discharge_hour = next_hour
@@ -181,6 +183,7 @@ def _is_possible_discharge_hour(
             charge_hour, charge_plan
         )
         and _is_highest_price_before_next_charge(charge_hour, charge_plan)
+        and _is_local_max_export_price(charge_hour, charge_plan)
     )
 
 
@@ -190,7 +193,7 @@ def _is_highest_price_before_next_charge(
     index = charge_hour.get_hour()
     best_discharge_hour = charge_hour
 
-    for index in range(index + 1, len(charge_plan.get_scheduled_hours())):
+    for index in range(index + 1, charge_plan.len()):
         next_hour = charge_plan.get_by_index(index)
         if _is_lowest_price_before_next_discharge(next_hour, charge_plan):
             break
@@ -213,3 +216,31 @@ def _export_price_is_larger_than_a_previous_import_price(
         if previous_hour.get_import_price() < discharge_hour.get_export_price():
             return True
     return False
+
+
+def _is_local_min_import_price(
+    charge_hour: ChargeHour, charge_plan: ChargePlan
+) -> bool:
+    start_index = max(charge_hour.get_hour() - 1, 0)
+    end_index = min(charge_hour.get_hour() + 1, charge_plan.len())
+    previous_hour = charge_plan.get_by_index(start_index)
+    next_hour = charge_plan.get_by_index(end_index)
+    return (
+        previous_hour.get_import_price()
+        >= charge_hour.get_import_price()
+        <= next_hour.get_import_price()
+    )
+
+
+def _is_local_max_export_price(
+    charge_hour: ChargeHour, charge_plan: ChargePlan
+) -> bool:
+    start_index = max(charge_hour.get_hour() - 1, 0)
+    end_index = min(charge_hour.get_hour() + 1, charge_plan.len() - 1)
+    previous_hour = charge_plan.get_by_index(start_index)
+    next_hour = charge_plan.get_by_index(end_index)
+    return (
+        previous_hour.get_export_price()
+        <= charge_hour.get_export_price()
+        >= next_hour.get_export_price()
+    )

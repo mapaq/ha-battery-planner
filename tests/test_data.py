@@ -9,7 +9,7 @@ short_price_series_with_1_cycle = {
 
 short_price_series_with_2_cycles = {
     "import": [3.0, 2.0, 4.0, 1.0, 5.0],
-    "export": [1.0, 1.0, 3.0, 4.0, 4.0],
+    "export": [1.0, 1.0, 3.0, 2.0, 4.0],
     "yield": 4.0,
     "plan": [0, -1000, 1000, -1000, 1000],
 }
