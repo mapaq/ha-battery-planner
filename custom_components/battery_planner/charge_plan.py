@@ -85,6 +85,9 @@ class ChargePlan:
         """Get all scheduled hours"""
         return self._schedule
 
+    # TODO: Shall this calculation include the battery average charge cost?
+    # It might need to do that if this is to be used by the sensor.
+    # The charge_plan should in that case have a battery object with inital values it was created with.
     def expected_yield(self) -> float:
         """Get expected financial yield of the planned charging and discharging"""
         expected_yield = 0

@@ -64,6 +64,7 @@ class TestPlanner:
             short_price_series_with_2_cycles,
             short_price_series_with_3_cycles,
             long_price_series_with_3_cycles,
+            long_price_series_with_3_cycles_2,
         ],
     )
     def test_charge_cost(
