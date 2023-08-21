@@ -15,17 +15,24 @@ class ChargeHour:
     _export_price: float
     _power_watts: int
 
-    def __init__(
-        self,
-        hour: int,
-        import_price: float,
-        export_price: float,
-        power: int
-    ):
+    def __init__(self, hour: int, import_price: float, export_price: float, power: int):
         self.set_hour(hour)
-        self._import_price = import_price
-        self._export_price = export_price
+        self._import_price = round(import_price, 2)
+        self._export_price = round(export_price, 2)
         self._power_watts = power
+
+    @classmethod
+    def from_dt(
+        cls, hour_dt: datetime, import_price: float, export_price: float, power: int
+    ):
+        """Create a ChargeHour object where the hour is represented by a datetime object"""
+        tomorrow = (datetime.now() + timedelta(days=1)).day
+        hour_index = 0
+        if hour_dt.day == tomorrow:
+            hour_index = 24
+        hour_index += hour_dt.hour
+
+        return ChargeHour(hour_index, import_price, export_price, power)
 
     def __repr__(self):
         return self.__str__()
@@ -38,13 +45,22 @@ class ChargeHour:
         readable["Power"] = self._power_watts
         return str(readable)
 
+    def to_json(self) -> dict[str, str | float | int]:
+        """Get data for the charge hour in JSON format"""
+        return {
+            "hour": self.hour_iso_string(),
+            "import_price": self._import_price,
+            "export_price": self._export_price,
+            "power": self._power_watts,
+        }
+
     def clone(self):
         """Create a clone of this object"""
         return ChargeHour(
             hour=self.get_hour(),
             import_price=self.get_import_price(),
             export_price=self.get_export_price(),
-            power=self.get_power_watts()
+            power=self.get_power_watts(),
         )
 
     def set_hour(self, hour: int):
@@ -70,12 +86,14 @@ class ChargeHour:
 
     def set_power_watts(self, power_watts: int) -> None:
         """Set the power level for the hour, will be 0 if not set
-        power_watts - (W) Negative value = charge (consuming), positive = discharge (producing)"""
+        power_watts - (W) Negative value = charge (consuming), positive = discharge (producing)
+        """
         self._power_watts = power_watts
 
     def get_power_watts(self) -> int:
         """Get the power level for the hour, will be 0 if not previously set
-        Return power (W) Negative value = charge (consuming), positive = discharge (producing)"""
+        Return power (W) Negative value = charge (consuming), positive = discharge (producing)
+        """
         return self._power_watts
 
     def set_import_price(self, price: float):

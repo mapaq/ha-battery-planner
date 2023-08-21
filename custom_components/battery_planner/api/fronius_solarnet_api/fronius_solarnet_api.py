@@ -112,8 +112,8 @@ class FroniusSolarnetApi(BatteryApiInterface):
 
         charge_plan = ChargePlan()
         for solarnet_schedule in active_schedules:
-            charge_hour = ChargeHour(
-                solarnet_schedule.get_hour().hour,
+            charge_hour = ChargeHour.from_dt(
+                solarnet_schedule.get_hour(),
                 0.0,
                 0.0,
                 solarnet_schedule.get_power(),

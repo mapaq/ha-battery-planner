@@ -9,16 +9,30 @@ reschedule:
       advanced: false
       example: 0.05
       default: 0.05
-    prices_today:
-      name: Electricity prices today
-      description: Electricity prices of today as a list with 24 items, one price per hour
+    import_prices_today:
+      name: Electricity import prices today
+      description: Electricity import prices of today as a list with 24 items, one price per hour
       required: true
       advanced: false
       example: "{{ state_attr('sensor.nordpool', 'today') }}"
       default: "{{ state_attr('sensor.nordpool', 'today') }}"
-    prices_tomorrow:
-      name: Electricity prices tomorrow
-      description: Electricity prices of tomorrow as a list with 24 items, one price per hour
+    import_prices_tomorrow:
+      name: Electricity import prices tomorrow
+      description: Electricity import prices of tomorrow as a list with 24 items, one price per hour
+      required: true
+      advanced: false
+      example: "{{ state_attr('sensor.nordpool', 'tomorrow') }}"
+      default: "{{ state_attr('sensor.nordpool', 'tomorrow') }}"
+    export_prices_today:
+      name: Electricity export prices today
+      description: Electricity export prices of today as a list with 24 items, one price per hour
+      required: true
+      advanced: false
+      example: "{{ state_attr('sensor.nordpool', 'today') }}"
+      default: "{{ state_attr('sensor.nordpool', 'today') }}"
+    export_prices_tomorrow:
+      name: Electricity export prices tomorrow
+      description: Electricity export prices of tomorrow as a list with 24 items, one price per hour
       required: true
       advanced: false
       example: "{{ state_attr('sensor.nordpool', 'tomorrow') }}"
