@@ -23,9 +23,9 @@ _LOGGER = logging.getLogger(__name__)
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
-        vol.Optional("unique_id", default="battery_charge_schedule"): cv.string,
-        vol.Optional("friendly_name", default="Battery Charge Schedule"): cv.string,
-        vol.Optional("currency", default="SEK"): cv.string,
+        vol.Optional("unique_id", default="battery_charge_schedule"): cv.string,  # type: ignore
+        vol.Optional("friendly_name", default="Battery Charge Schedule"): cv.string,  # type: ignore
+        vol.Optional("currency", default="SEK"): cv.string,  # type: ignore
     }
 )
 
@@ -34,9 +34,9 @@ def _dry_setup(hass: HomeAssistant, config: Config, add_devices_callback):
     """Setup the platform using yaml"""
     _LOGGER.debug("Setting up Battery Schedule Sensor with config %r", config)
     sensor = BatteryScheduleSensor(
-        unique_id=config.get("unique_id"),
-        friendly_name=config.get("friendly_name"),
-        currency=config.get("currency"),
+        unique_id=config.get("unique_id"),  # type: ignore
+        friendly_name=config.get("friendly_name"),  # type: ignore
+        currency=config.get("currency"),  # type: ignore
         power_unit=POWER_WATT,
         battery_planner=hass.data[DOMAIN],
         hass=hass,
@@ -46,7 +46,7 @@ def _dry_setup(hass: HomeAssistant, config: Config, add_devices_callback):
 
 async def async_setup_platform(
     hass: HomeAssistant, config: Config, add_devices_callback, discovery_info=None
-) -> None:
+) -> bool:
     """Setup the sensor from yaml settings"""
     _dry_setup(hass, config, add_devices_callback)
     return True
@@ -122,7 +122,9 @@ class BatteryScheduleSensor(SensorEntity):
     def extra_state_attributes(self) -> dict[str, object]:
         return {
             "currency": self._currency,
-            "schedule": self._charge_plan.get_scheduled_hours(),
+            "import_prices": [],
+            "export_prices": [],
+            "schedule": self._charge_plan.get_scheduled_hours_serializeable(),
             "expected_yield": self._expected_yield,
         }
 

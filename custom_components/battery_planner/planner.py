@@ -114,6 +114,7 @@ def _map_prices_to_hour(
 ) -> list[ChargeHour]:
     """Pair prices with correct hour.
     The first item in the list will be paired with the hour for midnight of today"""
+    # TODO: Remove past hours, only plan the future hours
     prices: list[ChargeHour] = []
     for index, import_price in enumerate(import_prices):
         price = ChargeHour(

@@ -14,6 +14,8 @@ class ChargePlan:
     KEY_POWER = "power"
     KEY_PRICE = "price"
 
+    # The key is an hour represented as datetime in ISO string format
+    # {"2023-08-20T00:00:00": ChargeHour object}
     _schedule: dict[str, ChargeHour]
 
     def __init__(self):
@@ -84,6 +86,20 @@ class ChargePlan:
     def get_scheduled_hours(self) -> dict[str, ChargeHour]:
         """Get all scheduled hours"""
         return self._schedule
+
+    def get_scheduled_hours_serializeable(
+        self,
+    ) -> dict[str, dict[str, str | int | float]]:
+        """Get all sceduled hours as a serializable object"""
+        schedule: dict[str, dict[str, str | int | float]] = {}
+        for hour_iso, charge_hour in self._schedule.items():
+            charge_hour_dict = charge_hour.to_json()
+            try:
+                del charge_hour_dict["hour"]
+            except KeyError:
+                pass
+            schedule[hour_iso] = charge_hour_dict
+        return schedule
 
     # TODO: Shall this calculation include the battery average charge cost?
     # It might need to do that if this is to be used by the sensor.
