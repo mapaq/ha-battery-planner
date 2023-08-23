@@ -88,6 +88,10 @@ class BatteryPlanner:
             _LOGGER.error("Failed to start charging of the battery")
         await self.get_active_charge_plan(refresh=True)
 
+    async def refresh(self) -> None:
+        """Refresh the sensor"""
+        await self.get_active_charge_plan(refresh=True)
+
     async def reschedule(
         self,
         battery_state_of_charge: float,
