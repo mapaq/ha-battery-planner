@@ -88,9 +88,15 @@ async def async_setup(hass: HomeAssistant, hass_config: Config) -> bool:
         _LOGGER.debug("%s: service_call_charge", DOMAIN)
         await battery_planner.charge(battery_soc, power)
 
+    async def service_call_refresh(service_call):
+        """Refresh the sensor"""
+        _LOGGER.debug("%s: service_call_refresh", DOMAIN)
+        await battery_planner.refresh()
+
     hass.services.async_register(DOMAIN, "reschedule", service_call_reschedule)
     hass.services.async_register(DOMAIN, "stop", service_call_stop)
     hass.services.async_register(DOMAIN, "clear", service_call_clear)
     hass.services.async_register(DOMAIN, "charge", service_call_charge)
+    hass.services.async_register(DOMAIN, "refresh", service_call_refresh)
 
     return instance_created

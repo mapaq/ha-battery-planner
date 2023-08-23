@@ -50,3 +50,7 @@ charge:
       advanced: false
       example: 4000
       default: 4000
+
+refresh:
+  name: Refresh
+  description: Refresh the sensor
