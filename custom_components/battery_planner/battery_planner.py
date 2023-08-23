@@ -9,7 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 
 from .const import EVENT_NEW_DATA
-from .charge_plan import ChargePlan, hour_iso_string
+from .charge_plan import ChargePlan
 from .charge_hour import ChargeHour
 from .planner import Planner
 from .battery import Battery
@@ -24,9 +24,6 @@ SECRETS_PATH = "secrets.json"
 class BatteryPlanner:
     """Main class to handle data and push updates"""
 
-    # The price difference between charge hour and discharge hour
-    # must be higher than this to create a schedule for those hours
-    _price_margin: float
     _cheap_price: float
     _latest_prices: dict[str, float]
 
@@ -40,13 +37,11 @@ class BatteryPlanner:
         self,
         hass: HomeAssistant,
         battery: Battery,
-        price_margin: float,
         cheap_price: float,
     ):
         self._hass = hass
         self._active_charge_plan = None  # type: ignore
         self._battery = battery
-        self._price_margin = price_margin
         self._cheap_price = cheap_price
         self._latest_prices = {}
         self._battery_api = create_api_instance_from_secrets_file(hass)
