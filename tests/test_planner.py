@@ -42,7 +42,7 @@ class TestPlanner:
             import_prices=[3.0, 2.0, 4.0],
             export_prices=[1.0, 1.0, 3.0],
         )
-        assert charge_plan.get(hour_dt).get_power_watts() == -1000
+        assert charge_plan.get_by_dt(hour_dt).get_power_watts() == -1000
 
     def test_charge_at_0300(self, planner: Planner, battery_one_kw_one_kwh: Battery):
         charge_plan = planner.create_price_arbitrage_plan(
@@ -51,7 +51,7 @@ class TestPlanner:
             export_prices=[1.0, 1.0, 3.0, 1.0, 4.0],
         )
         assert (
-            charge_plan.get(
+            charge_plan.get_by_dt(
                 datetime.combine(datetime.now().date(), time(hour=3))
             ).get_power_watts()
             == -1000
@@ -127,3 +127,6 @@ class TestPlanner:
     #     if "plan" in data:
     #         for hour, power in enumerate(data["plan"]):
     #             assert charge_plan.get_by_index(hour).get_power_watts() == power
+
+
+# Write test "test_ignore_passed_hours"

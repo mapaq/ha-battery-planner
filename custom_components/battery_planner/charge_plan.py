@@ -32,14 +32,22 @@ class ChargePlan:
 
     def add_charge_hour(self, charge_hour: ChargeHour) -> None:
         """Add a new hour from a ChargeHour object"""
-        self._schedule[hour_iso_string(charge_hour.get_hour_dt())] = charge_hour.clone()
+        self._schedule[hour_iso_string(charge_hour.get_time())] = charge_hour.clone()
+
+    def pop(self, index: int = 0) -> ChargeHour:
+        """Remove item from plan based on index value"""
+        return self._schedule.pop(self.get_by_index(index).hour_iso_string())
 
     def is_scheduled(self, hour: datetime) -> bool:
         """Check if the hour is in the plan"""
         return hour_iso_string(hour) in self._schedule
 
-    def get(self, hour: datetime) -> ChargeHour:
+    def get(self, hour_iso: str) -> ChargeHour:
         """Get ChargeHour object"""
+        return self._schedule[hour_iso]
+
+    def get_by_dt(self, hour: datetime) -> ChargeHour:
+        """Get ChargeHour object by datetime"""
         hour_iso = hour_iso_string(hour)
         if hour_iso not in self._schedule:
             _LOGGER.warning(
@@ -53,41 +61,52 @@ class ChargePlan:
     def get_by_index(self, hour: int) -> ChargeHour:
         """Get charge_hour by index"""
         for charge_hour in self._schedule.values():
-            if charge_hour.get_hour() == hour:
+            if charge_hour.get_index() == hour:
                 return charge_hour
         raise IndexError(f"Hour with index {hour} not found")
+
+    def get_last(self) -> ChargeHour:
+        """Get the last hour in charge plan"""
+        sorted_by_time = sorted(
+            self._schedule.values(), key=lambda hour: hour.get_time()
+        )
+        return sorted_by_time[-1]
 
     def get_power(self, hour: datetime) -> int:
         """Get the scheduled power value for the given hour
         hour - The hour as a datetime object
         Return power (W) Negative value is charge (consuming), positive is discharge (producing)
         """
-        return int(self.get(hour).get_power_watts())
+        return int(self.get_by_dt(hour).get_power_watts())
 
     def set_power(self, hour: datetime, power: int):
         """Set power value for the given hour
         hour - The hour as a datetime object
         power - (W) Negative value means charge (consuming), positive means discharge (producing)
         """
-        self.get(hour).set_power_watts(power)
+        self.get_by_dt(hour).set_power_watts(power)
 
     def get_price(self, hour: datetime) -> float:
         """Get the price/kWh for the given hour"""
-        return self.get(hour).get_active_price()
+        return self.get_by_dt(hour).get_active_price()
 
     def set_price(self, hour: datetime, price: float):
         """Set the price/kWh for the given hour"""
         # TODO: Change to two separate methods? Check if it must be used.
-        if self.get(hour).get_power_watts() <= 0:
-            self.get(hour).set_import_price(price)
+        if self.get_by_dt(hour).get_power_watts() <= 0:
+            self.get_by_dt(hour).set_import_price(price)
         else:
-            self.get(hour).set_export_price(price)
+            self.get_by_dt(hour).set_export_price(price)
 
-    def get_scheduled_hours(self) -> dict[str, ChargeHour]:
+    def get_hours_list(self) -> list[ChargeHour]:
+        """Get all scheduled hours as a list"""
+        return list(self._schedule.values())
+
+    def get_hours_dict(self) -> dict[str, ChargeHour]:
         """Get all scheduled hours"""
         return self._schedule
 
-    def get_scheduled_hours_serializeable(
+    def get_hours_serializeable(
         self,
     ) -> dict[str, dict[str, str | int | float]]:
         """Get all sceduled hours as a serializable object"""
@@ -149,7 +168,7 @@ class ChargePlan:
 
     def len(self):
         """Get the length of the charge plan, i.e. the number of ChargeHours"""
-        return len(self.get_scheduled_hours())
+        return len(self.get_hours_dict())
 
 
 def hour_iso_string(hour: datetime) -> str:

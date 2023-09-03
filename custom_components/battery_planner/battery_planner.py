@@ -134,7 +134,7 @@ class BatteryPlanner:
 
     async def _get_active_charge_plan(self) -> ChargePlan:
         active_charge_plan = await self._battery_api.get_active_charge_plan()
-        for hour in active_charge_plan.get_scheduled_hours():
+        for hour in active_charge_plan.get_hours_dict():
             if hour in self._latest_prices:
                 active_charge_plan.set_price(
                     datetime.fromisoformat(hour), self._latest_prices[hour]
