@@ -1,6 +1,7 @@
 """Fictive battery to store calculated charge levels"""
 
 import logging
+import math
 
 from .charge_hour import ChargeHour
 
@@ -72,6 +73,13 @@ class Battery:
         """Get total battery energy storage capacity (Wh)"""
         return self._capacity
 
+    def get_available_capacity(self) -> int:
+        """Get the available capacity after adjusting for lower and upper soc limit"""
+        unavailable_capacity = (
+            1 - self._upper_soc_limit + self._lower_soc_limit
+        ) * self._capacity
+        return int(self._capacity - unavailable_capacity)
+
     def set_energy(self, energy: int):
         """Set energy level"""
         self._energy_watthours = energy
@@ -106,11 +114,15 @@ class Battery:
         self._energy_watthours = max(self._energy_watthours, self.min_energy_limit())
 
     def charge_max_power_for_one_hour(self, charge_hour: ChargeHour) -> int:
-        """Use max allowed charge level to set the charge level for the charge hour"""
+        """Use max allowed charge level to set the charge level for the charge hour
+
+        Return the power level to charge the battery"""
         return self.charge(self._max_charge_power, charge_hour)
 
     def charge(self, max_charge_power: int, charge_hour: ChargeHour) -> int:
-        """Increase stored energy of the fictive battery"""
+        """Increase stored energy of the fictive battery
+
+        Return the power level to charge the battery"""
         charge_power = min(
             self.remaining_energy_below_upper_soc_limit(), max_charge_power
         )
@@ -120,11 +132,15 @@ class Battery:
         return int(-charge_power)
 
     def discharge_max_power_for_one_hour(self, charge_hour: ChargeHour) -> int:
-        """Use max allowed discharge level"""
+        """Use max allowed discharge level
+
+        Return the power level to discharge the battery"""
         return self.discharge(self._max_discharge_power, charge_hour)
 
     def discharge(self, max_discharge_power: int, charge_hour: ChargeHour) -> int:
-        """Decrease stored energy of the fictive battery"""
+        """Decrease stored energy of the fictive battery
+
+        Return the power level to discharge the battery"""
         discharge_power = min(
             self.remaining_energy_above_lower_soc_limit(), max_discharge_power
         )
@@ -162,6 +178,14 @@ class Battery:
             charge_hour
         )
 
+    def needed_hours_to_deplete(self) -> int:
+        """Calculate the number of needed hours to fully discharge the battery to lower soc limit"""
+        return math.ceil(self.get_available_capacity() / self.get_max_discharge_power())
+
+    def needed_hours_to_fill(self) -> int:
+        """Calculate the number of needed hours to fully charge the battery to upper soc limit"""
+        return math.ceil(self.get_available_capacity() / self.get_max_charge_power())
+
     def clone(self):
         """Create a new object as a clone of this instance"""
         cloned_battery = Battery(
@@ -169,7 +193,7 @@ class Battery:
             max_charge_power=self._max_charge_power,
             max_discharge_power=self._max_discharge_power,
             upper_soc_limit=int(self._upper_soc_limit * 100),
-            lower_soc_limit=int(self._lower_soc_limit * 100)
+            lower_soc_limit=int(self._lower_soc_limit * 100),
         )
         cloned_battery.set_energy(self._energy_watthours)
         cloned_battery.set_average_charge_cost(self._average_charge_cost_per_kwh)
