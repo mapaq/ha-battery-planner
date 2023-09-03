@@ -66,7 +66,7 @@ class Planner:
                 best_plans["best"] = charge_plan.clone()
             return
 
-        charge_hour = charge_plan.get(hour_dt)
+        charge_hour = charge_plan.get_by_dt(hour_dt)
         next_hour_dt = hour_dt + timedelta(hours=1)
 
         charge_next_hour_plan = None
@@ -147,7 +147,7 @@ def _is_possible_charge_hour(
 def _is_lowest_price_before_next_discharge(
     charge_hour: ChargeHour, charge_plan: ChargePlan
 ) -> bool:
-    index = charge_hour.get_hour()
+    index = charge_hour.get_index()
     cheapest_charge_hour = charge_hour
     next_possible_discharge_hour = None
 
@@ -162,7 +162,7 @@ def _is_lowest_price_before_next_discharge(
     if next_possible_discharge_hour is None:
         return False
 
-    return charge_hour.get_hour() == cheapest_charge_hour.get_hour()
+    return charge_hour.get_index() == cheapest_charge_hour.get_index()
 
 
 def _is_possible_discharge_hour(
@@ -179,7 +179,7 @@ def _is_possible_discharge_hour(
 def _is_highest_price_before_next_charge(
     charge_hour: ChargeHour, charge_plan: ChargePlan
 ) -> bool:
-    index = charge_hour.get_hour()
+    index = charge_hour.get_index()
     best_discharge_hour = charge_hour
 
     for index in range(index + 1, charge_plan.len()):
@@ -189,7 +189,7 @@ def _is_highest_price_before_next_charge(
         if next_hour.get_export_price() > best_discharge_hour.get_export_price():
             best_discharge_hour = next_hour
 
-    return charge_hour.get_hour() == best_discharge_hour.get_hour()
+    return charge_hour.get_index() == best_discharge_hour.get_index()
 
 
 def _export_price_is_larger_than_average_charge_cost(
@@ -201,8 +201,8 @@ def _export_price_is_larger_than_average_charge_cost(
 def _is_local_min_import_price(
     charge_hour: ChargeHour, charge_plan: ChargePlan
 ) -> bool:
-    start_index = max(charge_hour.get_hour() - 1, 0)
-    end_index = min(charge_hour.get_hour() + 1, charge_plan.len())
+    start_index = max(charge_hour.get_index() - 1, 0)
+    end_index = min(charge_hour.get_index() + 1, charge_plan.len())
     previous_hour = charge_plan.get_by_index(start_index)
     next_hour = charge_plan.get_by_index(end_index)
     return (
@@ -215,8 +215,8 @@ def _is_local_min_import_price(
 def _is_local_max_export_price(
     charge_hour: ChargeHour, charge_plan: ChargePlan
 ) -> bool:
-    start_index = max(charge_hour.get_hour() - 1, 0)
-    end_index = min(charge_hour.get_hour() + 1, charge_plan.len() - 1)
+    start_index = max(charge_hour.get_index() - 1, 0)
+    end_index = min(charge_hour.get_index() + 1, charge_plan.len() - 1)
     previous_hour = charge_plan.get_by_index(start_index)
     next_hour = charge_plan.get_by_index(end_index)
     return (

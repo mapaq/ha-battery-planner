@@ -48,11 +48,11 @@ class FroniusSolarnetApi(BatteryApiInterface):
             datetime, SolarnetChargeSchedule
         ] = await self._active_schedules_for_today()
 
-        scheduled_hours: dict[str, ChargeHour] = new_charge_plan.get_scheduled_hours()
+        scheduled_hours: dict[str, ChargeHour] = new_charge_plan.get_hours_dict()
         for hour_iso, charge_hour in scheduled_hours.items():
             self._add_schedules_for_hour(
                 solarnet_schedules,
-                charge_hour.get_hour_dt(),
+                charge_hour.get_time(),
                 charge_hour.get_power_watts(),
             )
 

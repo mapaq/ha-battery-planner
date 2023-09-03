@@ -124,7 +124,7 @@ class BatteryScheduleSensor(SensorEntity):
             "currency": self._currency,
             "import_prices": [],
             "export_prices": [],
-            "schedule": self._charge_plan.get_scheduled_hours_serializeable(),
+            "schedule": self._charge_plan.get_hours_serializeable(),
             "expected_yield": self._expected_yield,
         }
 

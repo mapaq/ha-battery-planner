@@ -39,6 +39,7 @@ class ChargeHour:
 
     def __str__(self):
         readable = {}
+        readable["Index"] = self.get_index()
         readable["Hour"] = self.hour_iso_string()
         readable["Import price"] = self._import_price
         readable["Export price"] = self._export_price
@@ -48,6 +49,7 @@ class ChargeHour:
     def to_json(self) -> dict[str, str | float | int]:
         """Get data for the charge hour in JSON format"""
         return {
+            "index": self.get_index(),
             "hour": self.hour_iso_string(),
             "import_price": self._import_price,
             "export_price": self._export_price,
@@ -57,7 +59,7 @@ class ChargeHour:
     def clone(self):
         """Create a clone of this object"""
         return ChargeHour(
-            hour=self.get_hour(),
+            hour=self.get_index(),
             import_price=self.get_import_price(),
             export_price=self.get_export_price(),
             power=self.get_power_watts(),
@@ -70,11 +72,11 @@ class ChargeHour:
         today_midnight = datetime.combine(now.date(), time(0))
         self._hour_dt = today_midnight + timedelta(hours=hour)
 
-    def get_hour(self) -> int:
+    def get_index(self) -> int:
         """Get the hour as index (0 = today midnight)"""
         return self._hour
 
-    def get_hour_dt(self) -> datetime:
+    def get_time(self) -> datetime:
         """Get the hour as datetime"""
         return self._hour_dt
 
