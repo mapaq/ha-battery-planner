@@ -113,20 +113,20 @@ class TestPlanner:
             for hour, power in enumerate(data["plan"]):
                 assert charge_plan.get_by_index(hour).get_power_watts() == power
 
-    # @pytest.mark.parametrize(
-    #     "data",
-    #     [short_price_series_with_consecutive_charge],
-    # )
-    # def test_consecutive_charge(self, planner, battery_one_kw_two_kwh, data):
-    #     charge_plan = planner.create_price_arbitrage_plan(
-    #         battery_one_kw_two_kwh,
-    #         data["import"],
-    #         data["export"],
-    #     )
-    #     assert charge_plan.expected_yield() == data["yield"], f"\n{charge_plan}"
-    #     if "plan" in data:
-    #         for hour, power in enumerate(data["plan"]):
-    #             assert charge_plan.get_by_index(hour).get_power_watts() == power
+    @pytest.mark.parametrize(
+        "data",
+        [short_price_series_with_consecutive_charge],
+    )
+    def test_consecutive_charge(self, planner, battery_one_kw_two_kwh, data):
+        charge_plan = planner.create_price_arbitrage_plan(
+            battery_one_kw_two_kwh,
+            data["import"],
+            data["export"],
+        )
+        assert charge_plan.expected_yield() == data["yield"], f"\n{charge_plan}"
+        if "plan" in data:
+            for hour, power in enumerate(data["plan"]):
+                assert charge_plan.get_by_index(hour).get_power_watts() == power
 
 
 # Write test "test_ignore_passed_hours"
