@@ -33,10 +33,13 @@ class ChargePlan:
     def add_charge_hour(self, charge_hour: ChargeHour) -> None:
         """Add a new hour from a ChargeHour object"""
         self._schedule[hour_iso_string(charge_hour.get_time())] = charge_hour.clone()
+        self._schedule = dict(
+            sorted(self._schedule.items(), key=lambda d: d[1].get_time())
+        )
 
     def pop(self, index: int = 0) -> ChargeHour:
         """Remove item from plan based on index value"""
-        return self._schedule.pop(self.get_by_index(index).hour_iso_string())
+        return self._schedule.pop(self.get_hours_list()[index].hour_iso_string())
 
     def is_scheduled(self, hour: datetime) -> bool:
         """Check if the hour is in the plan"""
@@ -58,12 +61,17 @@ class ChargePlan:
             return ChargeHour(hour.hour, 0.0, 0.0, 0)
         return self._schedule[hour_iso]
 
-    def get_by_index(self, hour: int) -> ChargeHour:
+    def get_by_index(self, index: int) -> ChargeHour:
         """Get charge_hour by index"""
-        for charge_hour in self._schedule.values():
-            if charge_hour.get_index() == hour:
-                return charge_hour
-        raise IndexError(f"Hour with index {hour} not found")
+        try:
+            return self.get_hours_list()[index]
+        except IndexError as error:
+            raise IndexError(f"Hour with index {index} not found") from error
+
+    def index_of(self, charge_hour: ChargeHour) -> int:
+        """Get the index of a charge_hour"""
+        hour_in_list = self.get_by_dt(charge_hour.get_time())
+        return self.get_hours_list().index(hour_in_list)
 
     def get_last(self) -> ChargeHour:
         """Get the last hour in charge plan"""

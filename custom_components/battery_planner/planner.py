@@ -42,15 +42,27 @@ class Planner:
 
         Returns a plan with 0 W for all hours if the return is to low"""
 
-        now = datetime.now()
-        today_midnight = datetime.combine(now.date(), time(hour=0))
+        index = 0
         empty_charge_plan = _empty_charge_plan(
             _map_prices_to_hour(import_prices, export_prices)
         )
+
         best_plans = {"best": empty_charge_plan.clone()}
-        self._create_charge_plans(
-            best_plans, empty_charge_plan, today_midnight, battery
-        )
+        self._create_charge_plans(best_plans, empty_charge_plan.clone(), index, battery)
+
+        planned_hours: list[ChargeHour] = []
+        charge_plan = best_plans["best"]
+        for hour in charge_plan.get_hours_list():
+            if hour.get_power_watts() != 0:
+                planned_hours.append(charge_plan.pop(charge_plan.index_of(hour)))
+
+        if battery.needed_hours_to_fill() > 1:
+            best_plans = {"best": charge_plan.clone()}
+            self._create_charge_plans(best_plans, charge_plan.clone(), index, battery)
+            charge_plan = best_plans["best"]
+
+        for hour in planned_hours:
+            charge_plan.add_charge_hour(hour)
 
         return best_plans["best"]
 
@@ -58,16 +70,18 @@ class Planner:
         self,
         best_plans: dict[str, ChargePlan],
         charge_plan: ChargePlan,
-        hour_dt: datetime,
+        index: int,
         battery: Battery,
     ):
-        if not charge_plan.is_scheduled(hour_dt):
+        try:
+            charge_plan.get_by_index(index)
+        except IndexError:
             if charge_plan.expected_yield() > best_plans["best"].expected_yield():
                 best_plans["best"] = charge_plan.clone()
             return
 
-        charge_hour = charge_plan.get_by_dt(hour_dt)
-        next_hour_dt = hour_dt + timedelta(hours=1)
+        charge_hour = charge_plan.get_by_index(index)
+        next_hour_index = index + 1
 
         charge_next_hour_plan = None
         idle_next_hour_plan = None
@@ -85,16 +99,9 @@ class Planner:
             self._create_charge_plans(
                 best_plans,
                 charge_next_hour_plan.clone(),
-                next_hour_dt,
+                next_hour_index,
                 charged_battery.clone(),
             )
-
-        self._create_charge_plans(
-            best_plans,
-            idle_next_hour_plan.clone(),
-            next_hour_dt,
-            battery.clone(),
-        )
 
         discharged_battery = battery.clone()
         if _is_possible_discharge_hour(charge_plan, charge_hour, discharged_battery):
@@ -104,9 +111,16 @@ class Planner:
             self._create_charge_plans(
                 best_plans,
                 discharge_next_hour_plan.clone(),
-                next_hour_dt,
+                next_hour_index,
                 discharged_battery.clone(),
             )
+
+        self._create_charge_plans(
+            best_plans,
+            idle_next_hour_plan.clone(),
+            next_hour_index,
+            battery.clone(),
+        )
 
 
 def _map_prices_to_hour(
@@ -141,13 +155,26 @@ def _is_possible_charge_hour(
         not battery.is_full()
         and _is_lowest_price_before_next_discharge(charge_hour, charge_plan)
         and _is_local_min_import_price(charge_hour, charge_plan)
+        and charge_hour.get_power_watts() == 0
+    )
+
+
+def _is_possible_discharge_hour(
+    charge_plan: ChargePlan, charge_hour: ChargeHour, battery: Battery
+):
+    return (
+        not battery.is_empty()
+        and _export_price_is_larger_than_average_charge_cost(charge_hour, battery)
+        and _is_highest_price_before_next_charge(charge_hour, charge_plan)
+        and _is_local_max_export_price(charge_hour, charge_plan)
+        and charge_hour.get_power_watts() == 0
     )
 
 
 def _is_lowest_price_before_next_discharge(
     charge_hour: ChargeHour, charge_plan: ChargePlan
 ) -> bool:
-    index = charge_hour.get_index()
+    index = charge_plan.index_of(charge_hour)
     cheapest_charge_hour = charge_hour
     next_possible_discharge_hour = None
 
@@ -162,24 +189,13 @@ def _is_lowest_price_before_next_discharge(
     if next_possible_discharge_hour is None:
         return False
 
-    return charge_hour.get_index() == cheapest_charge_hour.get_index()
-
-
-def _is_possible_discharge_hour(
-    charge_plan: ChargePlan, charge_hour: ChargeHour, battery: Battery
-):
-    return (
-        not battery.is_empty()
-        and _export_price_is_larger_than_average_charge_cost(charge_hour, battery)
-        and _is_highest_price_before_next_charge(charge_hour, charge_plan)
-        and _is_local_max_export_price(charge_hour, charge_plan)
-    )
+    return charge_hour.get_time() == cheapest_charge_hour.get_time()
 
 
 def _is_highest_price_before_next_charge(
     charge_hour: ChargeHour, charge_plan: ChargePlan
 ) -> bool:
-    index = charge_hour.get_index()
+    index = charge_plan.index_of(charge_hour)
     best_discharge_hour = charge_hour
 
     for index in range(index + 1, charge_plan.len()):
@@ -189,7 +205,7 @@ def _is_highest_price_before_next_charge(
         if next_hour.get_export_price() > best_discharge_hour.get_export_price():
             best_discharge_hour = next_hour
 
-    return charge_hour.get_index() == best_discharge_hour.get_index()
+    return charge_hour.get_time() == best_discharge_hour.get_time()
 
 
 def _export_price_is_larger_than_average_charge_cost(
@@ -201,8 +217,8 @@ def _export_price_is_larger_than_average_charge_cost(
 def _is_local_min_import_price(
     charge_hour: ChargeHour, charge_plan: ChargePlan
 ) -> bool:
-    start_index = max(charge_hour.get_index() - 1, 0)
-    end_index = min(charge_hour.get_index() + 1, charge_plan.len())
+    start_index = max(charge_plan.index_of(charge_hour) - 1, 0)
+    end_index = min(charge_plan.index_of(charge_hour) + 1, charge_plan.len())
     previous_hour = charge_plan.get_by_index(start_index)
     next_hour = charge_plan.get_by_index(end_index)
     return (
@@ -215,8 +231,8 @@ def _is_local_min_import_price(
 def _is_local_max_export_price(
     charge_hour: ChargeHour, charge_plan: ChargePlan
 ) -> bool:
-    start_index = max(charge_hour.get_index() - 1, 0)
-    end_index = min(charge_hour.get_index() + 1, charge_plan.len() - 1)
+    start_index = max(charge_plan.index_of(charge_hour) - 1, 0)
+    end_index = min(charge_plan.index_of(charge_hour) + 1, charge_plan.len() - 1)
     previous_hour = charge_plan.get_by_index(start_index)
     next_hour = charge_plan.get_by_index(end_index)
     return (
