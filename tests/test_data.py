@@ -48,6 +48,13 @@ short_price_series_with_consecutive_charge = {
     "plan": [0, -1000, -1000, 0, 1000, 1000, 0],
 }
 
+short_price_series_with_consecutive_charge_battery_two_kw_three_kwh = {
+    "import": [3.0, 2.0, 1.0, 3.0, 5.0, 6.0, 2.0],
+    "export": [1.0, 1.0, 3.0, 2.0, 4.0, 5.0, 1.0],
+    "yield": 10.0,
+    "plan": [0, -1000, -2000, 0, 1000, 2000, 0],
+}
+
 short_price_series_with_3_cycles = {
     "import": [
         97.58,  # 1

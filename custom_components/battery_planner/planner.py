@@ -56,7 +56,18 @@ class Planner:
             if hour.get_power_watts() != 0:
                 planned_hours.append(charge_plan.pop(charge_plan.index_of(hour)))
 
+        # TODO: Loop this the number of hours needed to fill, or redo until max_power = 0?
         if battery.needed_hours_to_fill() > 1:
+            # TODO: This way of changing max power only works one time
+            # Need to store previous max power if several hours needed
+            next_charge_power = (
+                battery.get_available_capacity() - battery.get_max_charge_power()
+            )
+            next_discharge_power = (
+                battery.get_available_capacity() - battery.get_max_discharge_power()
+            )
+            battery.set_max_charge_power(next_charge_power)
+            battery.set_max_discharge_power(next_discharge_power)
             best_plans = {"best": charge_plan.clone()}
             self._create_charge_plans(best_plans, charge_plan.clone(), index, battery)
             charge_plan = best_plans["best"]
