@@ -15,7 +15,7 @@ class TestPlanner:
     def test_create_price_arbitrage_plan_returns_a_charge_plan(
         self, planner: Planner, battery_one_kw_one_kwh: Battery
     ):
-        charge_plan = planner.create_price_arbitrage_plan(
+        charge_plan: ChargePlan = planner.create_price_arbitrage_plan(
             battery=battery_one_kw_one_kwh,
             import_prices=[1.0, 2.0],
             export_prices=[1.0, 2.0],
@@ -26,7 +26,7 @@ class TestPlanner:
     def test_first_hour_is_0000(
         self, planner: Planner, battery_one_kw_one_kwh: Battery, hour_dt: datetime
     ):
-        charge_plan = planner.create_price_arbitrage_plan(
+        charge_plan: ChargePlan = planner.create_price_arbitrage_plan(
             battery=battery_one_kw_one_kwh,
             import_prices=[1.0, 2.0],
             export_prices=[1.0, 2.0],
@@ -37,7 +37,7 @@ class TestPlanner:
     def test_charge_at_0100(
         self, planner: Planner, battery_one_kw_one_kwh: Battery, hour_dt: datetime
     ):
-        charge_plan = planner.create_price_arbitrage_plan(
+        charge_plan: ChargePlan = planner.create_price_arbitrage_plan(
             battery=battery_one_kw_one_kwh,
             import_prices=[3.0, 2.0, 4.0],
             export_prices=[1.0, 1.0, 3.0],
@@ -73,7 +73,7 @@ class TestPlanner:
         battery_one_kw_one_kwh: Battery,
         data: dict[str, list[float]],
     ):
-        charge_plan = planner.create_price_arbitrage_plan(
+        charge_plan: ChargePlan = planner.create_price_arbitrage_plan(
             battery_one_kw_one_kwh,
             data["import"],
             data["export"],
@@ -99,7 +99,7 @@ class TestPlanner:
     ):
         battery_one_kw_one_kwh.set_energy(int(data["battery_energy"][0]))
         battery_one_kw_one_kwh.set_average_charge_cost(data["average_charge_cost"][0])
-        charge_plan = planner.create_price_arbitrage_plan(
+        charge_plan: ChargePlan = planner.create_price_arbitrage_plan(
             battery_one_kw_one_kwh,
             data["import"],
             data["export"],
@@ -117,8 +117,10 @@ class TestPlanner:
         "data",
         [short_price_series_with_consecutive_charge],
     )
-    def test_consecutive_charge(self, planner, battery_one_kw_two_kwh, data):
-        charge_plan = planner.create_price_arbitrage_plan(
+    def test_consecutive_charge(
+        self, planner: Planner, battery_one_kw_two_kwh: Battery, data
+    ):
+        charge_plan: ChargePlan = planner.create_price_arbitrage_plan(
             battery_one_kw_two_kwh,
             data["import"],
             data["export"],
@@ -128,5 +130,24 @@ class TestPlanner:
             for hour, power in enumerate(data["plan"]):
                 assert charge_plan.get_by_index(hour).get_power_watts() == power
 
+    @pytest.mark.parametrize(
+        "data",
+        [short_price_series_with_consecutive_charge_battery_two_kw_three_kwh],
+    )
+    def test_consecutive_charge_with_different_power(
+        self, planner: Planner, battery_two_kw_three_kwh: Battery, data
+    ):
+        charge_plan: ChargePlan = planner.create_price_arbitrage_plan(
+            battery_two_kw_three_kwh,
+            data["import"],
+            data["export"],
+        )
+        assert charge_plan.expected_yield() == data["yield"], f"\n{charge_plan}"
+        if "plan" in data:
+            for hour, power in enumerate(data["plan"]):
+                assert charge_plan.get_by_index(hour).get_power_watts() == power
 
-# Write test "test_ignore_passed_hours"
+
+# TODO: Write test "test_ignore_passed_hours"
+# Need to pass datetime with "first_hour" to the planner, or simply remove passed hours before
+# sending to planner

@@ -61,9 +61,17 @@ class Battery:
         self._soc = soc
         self._energy_watthours = int(self._capacity * soc)
 
+    def set_max_charge_power(self, power: int) -> None:
+        """Set the max allowed charge power (W)"""
+        self._max_charge_power = power
+
     def get_max_charge_power(self) -> int:
         """Get the max allowed charge power (W)"""
         return self._max_charge_power
+
+    def set_max_discharge_power(self, power: int) -> None:
+        """Set the max allowed discharge power (W)"""
+        self._max_discharge_power = power
 
     def get_max_discharge_power(self) -> int:
         """Get the max allowed discharge power (W)"""
