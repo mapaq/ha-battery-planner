@@ -147,7 +147,38 @@ class TestPlanner:
             for hour, power in enumerate(data["plan"]):
                 assert charge_plan.get_by_index(hour).get_power_watts() == power
 
+    @pytest.mark.parametrize(
+        "data",
+        [
+            short_price_series_with_3_cycles_start_at_04,
+            long_price_series_start_on_hour_21,
+        ],
+    )
+    def test_ignore_passed_hours(
+        self, planner: Planner, battery_one_kw_one_kwh: Battery, data
+    ):
+        battery: Battery = battery_one_kw_one_kwh
+        start_hour = data["start_hour"]
+        if "battery" in data:
+            batt = data["battery"]
+            battery = Battery(
+                batt["capacity"],
+                batt["max_charge_power"],
+                batt["max_discharge_power"],
+                batt["upper_soc_limit"],
+                batt["lower_soc_limit"],
+            )
+            battery.set_soc(batt["soc"])
+        charge_plan: ChargePlan = planner.create_price_arbitrage_plan(
+            battery, data["import"], data["export"], start_hour
+        )
+        assert charge_plan.expected_yield() == data["yield"], f"\n{charge_plan}"
+        assert charge_plan.len() == len(data["plan"])
+        assert charge_plan.get_by_index(0).get_time().hour == start_hour
+        if "plan" in data:
+            for hour, power in enumerate(data["plan"]):
+                assert charge_plan.get_by_index(hour).get_power_watts() == power
 
-# TODO: Write test "test_ignore_passed_hours"
+
 # Need to pass datetime with "first_hour" to the planner, or simply remove passed hours before
 # sending to planner

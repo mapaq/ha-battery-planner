@@ -26,7 +26,11 @@ class Planner:
         self._cheap_import_price_limit = cheap_import_price_limit
 
     def create_price_arbitrage_plan(
-        self, battery: Battery, import_prices: list[float], export_prices: list[float]
+        self,
+        battery: Battery,
+        import_prices: list[float],
+        export_prices: list[float],
+        start_hour: int = 0,
     ) -> ChargePlan:
         """Charge plan is created for the period specified by the provided hours
 
@@ -39,16 +43,18 @@ class Planner:
         battery - Battery to be charged and discharged
         import_prices - Import prices (price/kWh) where the first item is for 00:00 today
         export_prices - Export prices (price/kWh) where the first item is for 00:00 today
+        start_hour - The first hour (from midnight today) to create plan for
 
         Returns a plan with 0 W for all hours if the return is to low"""
 
-        index = 0
+        import_prices = import_prices[start_hour:]
+        export_prices = export_prices[start_hour:]
         empty_charge_plan = _empty_charge_plan(
-            _map_prices_to_hour(import_prices, export_prices)
+            _map_prices_to_hour(import_prices, export_prices, start_hour)
         )
 
         best_plans = {"best": empty_charge_plan.clone()}
-        self._create_charge_plans(best_plans, empty_charge_plan.clone(), index, battery)
+        self._create_charge_plans(best_plans, empty_charge_plan.clone(), 0, battery)
 
         planned_hours: list[ChargeHour] = []
         charge_plan = best_plans["best"]
@@ -69,7 +75,7 @@ class Planner:
             battery.set_max_charge_power(next_charge_power)
             battery.set_max_discharge_power(next_discharge_power)
             best_plans = {"best": charge_plan.clone()}
-            self._create_charge_plans(best_plans, charge_plan.clone(), index, battery)
+            self._create_charge_plans(best_plans, charge_plan.clone(), 0, battery)
             charge_plan = best_plans["best"]
 
         for hour in planned_hours:
@@ -135,7 +141,7 @@ class Planner:
 
 
 def _map_prices_to_hour(
-    import_prices: list[float], export_prices: list[float]
+    import_prices: list[float], export_prices: list[float], start_hour: int
 ) -> list[ChargeHour]:
     """Pair prices with correct hour.
     The first item in the list will be paired with the hour for midnight of today"""
@@ -143,7 +149,7 @@ def _map_prices_to_hour(
     prices: list[ChargeHour] = []
     for index, import_price in enumerate(import_prices):
         price = ChargeHour(
-            hour=index,
+            hour=index + start_hour,
             import_price=import_price,
             export_price=export_prices[index],
             power=0,
