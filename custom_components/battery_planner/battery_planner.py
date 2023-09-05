@@ -4,6 +4,7 @@ import logging
 import json
 import importlib
 from datetime import datetime, timedelta, time
+from dateutil.tz import tzlocal
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.dispatcher import async_dispatcher_send
@@ -108,8 +109,11 @@ class BatteryPlanner:
 
         self._battery.set_soc(battery_state_of_charge)
 
+        # TODO: Fix local timezone, tzlocal() returns UTC
+        next_hour = (datetime.now().astimezone(tzlocal()) + timedelta(hours=1)).hour
+
         charge_plan = self._planner.create_price_arbitrage_plan(
-            self._battery, import_prices, export_prices
+            self._battery, import_prices, export_prices, next_hour
         )
 
         _LOGGER.debug("New charge plan will be scheduled:\n%s", charge_plan)
