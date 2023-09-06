@@ -59,7 +59,7 @@ async def async_setup(hass: HomeAssistant, hass_config: Config) -> bool:
 
     # service: battery_planner.reschedule
     # data:
-    #     battery_soc: 0.09
+    #     battery_soc: 10
     #     import_prices_today: '{{ state_attr("sensor.electricity_price_buy", "today") }}'
     #     import_prices_tomorrow: '{{ state_attr("sensor.electricity_price_buy", "tomorrow") }}'
     #     export_prices_today: '{{ state_attr("sensor.electricity_price_sell", "today") }}'
@@ -67,7 +67,7 @@ async def async_setup(hass: HomeAssistant, hass_config: Config) -> bool:
     async def service_call_reschedule(service_call):
         """Get future prices and create new schedule"""
         _LOGGER.debug("%s: service_call_reschedule", DOMAIN)
-        battery_soc: float = service_call.data.get("battery_soc", 0.0)
+        battery_soc: int = service_call.data.get("battery_soc", 0)
         import_prices_today: list[float] = service_call.data.get(
             "import_prices_today", []
         )
@@ -98,7 +98,7 @@ async def async_setup(hass: HomeAssistant, hass_config: Config) -> bool:
 
     async def service_call_charge(service_call):
         """Charge the battery now"""
-        battery_soc: float = service_call.data.get("battery_soc", 0.0)
+        battery_soc: int = service_call.data.get("battery_soc", 0)
         power: int = service_call.data.get("power", 4000)
         _LOGGER.debug("%s: service_call_charge", DOMAIN)
         await battery_planner.charge(battery_soc, power)

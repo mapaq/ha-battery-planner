@@ -4,11 +4,11 @@ reschedule:
   fields:
     battery_soc:
       name: Battery State of Charge
-      description: The current state of charge (SoC) of the battery
+      description: The current state of charge (%) of the battery
       required: true
       advanced: false
-      example: 0.05
-      default: 0.05
+      example: 10
+      default: 10
     import_prices_today:
       name: Electricity import prices today
       description: Electricity import prices of today as a list with 24 items, one price per hour
@@ -52,11 +52,11 @@ charge:
   fields:
     battery_soc:
       name: Battery State of Charge
-      description: The current state of charge (SoC) of the battery
+      description: The current state of charge (%) of the battery
       required: true
       advanced: false
-      example: 0.05
-      default: 0.05
+      example: 5
+      default: 5
     power:
       name: Charge power
       description: The power (W) to charge the battery with
