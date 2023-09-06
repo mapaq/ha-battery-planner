@@ -453,7 +453,7 @@ long_price_series_start_on_hour_21 = {
         "max_discharge_power": 4000,
         "upper_soc_limit": 90,
         "lower_soc_limit": 10,
-        "soc": 0.10,
+        "soc": 10,
     },
     "start_hour": 21,
     "yield": round(

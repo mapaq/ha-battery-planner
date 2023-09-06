@@ -4,7 +4,6 @@ import logging
 import json
 import importlib
 from datetime import datetime, timedelta, time
-from dateutil.tz import tzlocal
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.dispatcher import async_dispatcher_send
@@ -66,19 +65,26 @@ class BatteryPlanner:
             _LOGGER.error("Failed to clear the battery schedule")
         await self.get_active_charge_plan(refresh=True)
 
-    async def charge(self, battery_state_of_charge: float, power: int) -> None:
+    async def charge(self, battery_state_of_charge: int, power: int) -> None:
         """Charge the battery now"""
         charge_plan = ChargePlan()
         current_hour = datetime.now().hour
-        self._battery.set_soc(battery_state_of_charge)
+        battery = Battery(
+            self._battery.get_capacity(),
+            self._battery.get_max_charge_power(),
+            self._battery.get_max_discharge_power(),
+            self._battery.get_upper_soc_limit(),
+            self._battery.get_lower_soc_limit(),
+        )
+        battery.set_soc(battery_state_of_charge)
 
-        charge_power = min(self._battery.get_max_charge_power(), power)
+        charge_power = min(battery.get_max_charge_power(), power)
         charge_plan.add_charge_hour(ChargeHour(current_hour, 0.0, 0.0, charge_power))
 
         next_hour = current_hour + 1
-        while not self._battery.is_full():
+        while not battery.is_full():
             charge_hour = ChargeHour(next_hour, 0.0, 0.0, charge_power)
-            self._battery.charge(power, charge_hour)
+            battery.charge(power, charge_hour)
             charge_plan.add_charge_hour(charge_hour)
             next_hour += 1
 
@@ -95,25 +101,31 @@ class BatteryPlanner:
 
     async def reschedule(
         self,
-        battery_state_of_charge: float,
+        battery_state_of_charge: int,
         import_prices: list[float],
         export_prices: list[float],
     ) -> None:
         """Get future prices and create new schedule"""
         _LOGGER.info(
-            "Rescheduling battery, battery state of charge = %s",
+            "Rescheduling battery, battery state of charge = %s%%",
             battery_state_of_charge,
         )
         _LOGGER.debug("Import prices = %s", import_prices)
         _LOGGER.debug("Export prices = %s", export_prices)
 
-        self._battery.set_soc(battery_state_of_charge)
+        battery = Battery(
+            self._battery.get_capacity(),
+            self._battery.get_max_charge_power(),
+            self._battery.get_max_discharge_power(),
+            self._battery.get_upper_soc_limit(),
+            self._battery.get_lower_soc_limit(),
+        )
+        battery.set_soc(battery_state_of_charge)
 
-        # TODO: Fix local timezone, tzlocal() returns UTC
-        next_hour = (datetime.now().astimezone(tzlocal()) + timedelta(hours=1)).hour
+        next_hour = (datetime.now() + timedelta(hours=1)).hour
 
         charge_plan = self._planner.create_price_arbitrage_plan(
-            self._battery, import_prices, export_prices, next_hour
+            battery, import_prices, export_prices, next_hour
         )
 
         _LOGGER.debug("New charge plan will be scheduled:\n%s", charge_plan)

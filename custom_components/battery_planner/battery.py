@@ -39,7 +39,7 @@ class Battery:
         self._max_discharge_power = max_discharge_power
         self._upper_soc_limit = upper_soc_limit / 100
         self._lower_soc_limit = lower_soc_limit / 100
-        self.set_soc(0.0)
+        self.set_soc(0)
         self._average_charge_cost_per_kwh = 0.0
 
     def __repr__(self):
@@ -55,11 +55,12 @@ class Battery:
         readable["Energy level"] = self._energy_watthours
         return str(readable)
 
-    def set_soc(self, soc: float):
+    def set_soc(self, soc: int):
         """Set state of charge and calculate the energy level of the battery
-        soc - (%) The current state of charge of the battery, e.g. 100% = 1.0"""
-        self._soc = soc
-        self._energy_watthours = int(self._capacity * soc)
+
+        soc - (%) The current state of charge of the battery"""
+        self._soc = soc / 100
+        self._energy_watthours = int(self._capacity * self._soc)
 
     def set_max_charge_power(self, power: int) -> None:
         """Set the max allowed charge power (W)"""
@@ -80,6 +81,14 @@ class Battery:
     def get_capacity(self) -> int:
         """Get total battery energy storage capacity (Wh)"""
         return self._capacity
+
+    def get_upper_soc_limit(self) -> int:
+        """Get upper SoC limit (%)"""
+        return int(self._upper_soc_limit * 100)
+
+    def get_lower_soc_limit(self) -> int:
+        """Get lower SoC limit (%)"""
+        return int(self._lower_soc_limit * 100)
 
     def get_available_capacity(self) -> int:
         """Get the available capacity after adjusting for lower and upper soc limit"""
