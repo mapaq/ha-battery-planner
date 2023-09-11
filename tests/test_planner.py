@@ -42,7 +42,7 @@ class TestPlanner:
             import_prices=[3.0, 2.0, 4.0],
             export_prices=[1.0, 1.0, 3.0],
         )
-        assert charge_plan.get_by_dt(hour_dt).get_power_watts() == -1000
+        assert charge_plan.get_by_dt(hour_dt).get_power() == -1000
 
     def test_charge_at_0300(self, planner: Planner, battery_one_kw_one_kwh: Battery):
         charge_plan = planner.create_price_arbitrage_plan(
@@ -53,7 +53,7 @@ class TestPlanner:
         assert (
             charge_plan.get_by_dt(
                 datetime.combine(datetime.now().date(), time(hour=3))
-            ).get_power_watts()
+            ).get_power()
             == -1000
         )
 
@@ -81,7 +81,7 @@ class TestPlanner:
         assert charge_plan.expected_yield() == data["yield"], f"\n{charge_plan}"
         if "plan" in data:
             for hour, power in enumerate(data["plan"]):
-                assert charge_plan.get_by_index(hour).get_power_watts() == power
+                assert charge_plan.get_by_index(hour).get_power() == power
 
     @pytest.mark.parametrize(
         "data",
@@ -111,7 +111,7 @@ class TestPlanner:
         ), f"\n{charge_plan}"
         if "plan" in data:
             for hour, power in enumerate(data["plan"]):
-                assert charge_plan.get_by_index(hour).get_power_watts() == power
+                assert charge_plan.get_by_index(hour).get_power() == power
 
     @pytest.mark.parametrize(
         "data",
@@ -128,7 +128,7 @@ class TestPlanner:
         assert charge_plan.expected_yield() == data["yield"], f"\n{charge_plan}"
         if "plan" in data:
             for hour, power in enumerate(data["plan"]):
-                assert charge_plan.get_by_index(hour).get_power_watts() == power
+                assert charge_plan.get_by_index(hour).get_power() == power
 
     @pytest.mark.parametrize(
         "data",
@@ -145,13 +145,15 @@ class TestPlanner:
         assert charge_plan.expected_yield() == data["yield"], f"\n{charge_plan}"
         if "plan" in data:
             for hour, power in enumerate(data["plan"]):
-                assert charge_plan.get_by_index(hour).get_power_watts() == power
+                assert charge_plan.get_by_index(hour).get_power() == power
 
     @pytest.mark.parametrize(
         "data",
         [
             short_price_series_with_3_cycles_start_at_04,
             long_price_series_start_on_hour_21,
+            # long_price_series_start_hour_18_soc_90,
+            # long_price_series_start_hour_21_soc_10,
         ],
     )
     def test_ignore_passed_hours(
@@ -169,6 +171,12 @@ class TestPlanner:
                 batt["lower_soc_limit"],
             )
             battery.set_soc(batt["soc"])
+
+            # TODO: Remove when input_number for battery degradation has been added
+            if "degradation_cost" in data["battery"]:
+                for i, imp in enumerate(data["import"]):
+                    data["import"][i] = imp + data["battery"]["degradation_cost"]
+
         charge_plan: ChargePlan = planner.create_price_arbitrage_plan(
             battery, data["import"], data["export"], start_hour
         )
@@ -177,7 +185,7 @@ class TestPlanner:
         assert charge_plan.get_by_index(0).get_time().hour == start_hour
         if "plan" in data:
             for hour, power in enumerate(data["plan"]):
-                assert charge_plan.get_by_index(hour).get_power_watts() == power
+                assert charge_plan.get_by_index(hour).get_power() == power
 
 
 # Need to pass datetime with "first_hour" to the planner, or simply remove passed hours before

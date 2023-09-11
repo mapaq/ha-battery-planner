@@ -183,8 +183,8 @@ class Planner:
         self._mark_possible_charge_hours_with_power(charge_plan, battery, -2)
         print(f"\n{charge_plan}\n")
         for hour in charge_plan.get_hours_list():
-            if abs(hour.get_power_watts()) == 1:
-                hour.set_power_watts(0)
+            if abs(hour.get_power()) == 1:
+                hour.set_power(0)
 
         # TODO: Reduce number of 1 and -2 by finding out how many hours are needed to fully charge
         # respectively discharge the battery. If only two are needed, a series of five 1 can be reduced to two.
@@ -194,26 +194,26 @@ class Planner:
         self._mark_possible_charge_hours_with_power(charge_plan, battery, -2)
         print(f"\n{charge_plan}\n")
         for hour in charge_plan.get_hours_list():
-            if abs(hour.get_power_watts()) == 1:
-                hour.set_power_watts(0)
-            if abs(hour.get_power_watts()) == 2:
-                hour.set_power_watts(int(hour.get_power_watts() * 0.5))
+            if abs(hour.get_power()) == 1:
+                hour.set_power(0)
+            if abs(hour.get_power()) == 2:
+                hour.set_power(int(hour.get_power() * 0.5))
 
         self._find_and_mark_charge_and_discharge_hours(charge_plan)
         self._mark_possible_discharge_hours_with_power(charge_plan, battery, 2)
         self._mark_possible_charge_hours_with_power(charge_plan, battery, -2)
         print(f"\n{charge_plan}\n")
         for hour in charge_plan.get_hours_list():
-            if abs(hour.get_power_watts()) == 1:
-                hour.set_power_watts(0)
+            if abs(hour.get_power()) == 1:
+                hour.set_power(0)
 
         # # TODO: While not plan changes, run again
 
         for hour in charge_plan.get_hours_list():
-            if abs(hour.get_power_watts()) == 1:
-                hour.set_power_watts(0)
-            if abs(hour.get_power_watts()) == 2:
-                hour.set_power_watts(int(hour.get_power_watts() * 0.5))
+            if abs(hour.get_power()) == 1:
+                hour.set_power(0)
+            if abs(hour.get_power()) == 2:
+                hour.set_power(int(hour.get_power() * 0.5))
 
         print(f"\n{charge_plan}\n")
 
@@ -223,18 +223,18 @@ class Planner:
             charge_plan.get_hours_list(), key=lambda hour: hour.get_time()
         )
         for hour in time_sorted_hours:
-            if hour.get_power_watts() == 1:
+            if hour.get_power() == 1:
                 next_discharge_hour_index = time_sorted_hours.index(hour)
                 charge_hours: list[ChargeHour] = []
                 for charge_hour in time_sorted_hours[
                     previous_discharge_hour_index:next_discharge_hour_index
                 ]:
-                    if charge_hour.get_power_watts() == -1:
+                    if charge_hour.get_power() == -1:
                         charge_hours.append(charge_hour)
                         previous_discharge_hour_index = next_discharge_hour_index
                 price_sorted = sorted(charge_hours, key=lambda h: h.get_import_price())
                 for h in price_sorted[battery.needed_hours_to_fill() :]:
-                    h.set_power_watts(0)
+                    h.set_power(0)
 
         # agjfgjasdölfjjasdklfj
         self._find_and_mark_charge_and_discharge_hours(charge_plan)
@@ -242,10 +242,10 @@ class Planner:
         self._mark_possible_charge_hours_with_power(charge_plan, battery, -2)
         print(f"\n{charge_plan}\n")
         for hour in charge_plan.get_hours_list():
-            if abs(hour.get_power_watts()) == 1:
-                hour.set_power_watts(0)
-            if abs(hour.get_power_watts()) == 2:
-                hour.set_power_watts(int(hour.get_power_watts() * 0.5))
+            if abs(hour.get_power()) == 1:
+                hour.set_power(0)
+            if abs(hour.get_power()) == 2:
+                hour.set_power(int(hour.get_power() * 0.5))
 
         #     discharge_hours: list[ChargeHour] = []
         # for hour in hours:
@@ -271,18 +271,18 @@ class Planner:
             charge_plan.get_hours_list(), key=lambda hour: hour.get_time()
         )
         for hour in time_sorted_hours:
-            if hour.get_power_watts() == 1:
+            if hour.get_power() == 1:
                 next_discharge_hour_index = time_sorted_hours.index(hour)
                 charge_hours: list[ChargeHour] = []
                 for charge_hour in time_sorted_hours[
                     previous_discharge_hour_index:next_discharge_hour_index
                 ]:
-                    if charge_hour.get_power_watts() == -1:
+                    if charge_hour.get_power() == -1:
                         charge_hours.append(charge_hour)
                         previous_discharge_hour_index = next_discharge_hour_index
                 price_sorted = sorted(charge_hours, key=lambda h: h.get_import_price())
                 for h in price_sorted[battery.needed_hours_to_fill() :]:
-                    h.set_power_watts(0)
+                    h.set_power(0)
 
         print(f"\n{charge_plan}\n")
 
@@ -294,7 +294,7 @@ class Planner:
         self, charge_plan: ChargePlan, battery: Battery, power: int
     ):
         is_charge_hour: Callable[[ChargeHour], bool]
-        is_charge_hour = lambda hour: hour.get_power_watts() < 0
+        is_charge_hour = lambda hour: hour.get_power() < 0
         all_charge_hours = list(filter(is_charge_hour, charge_plan.get_hours_list()))
         for charge in all_charge_hours:
             discharge_group = (
@@ -303,13 +303,13 @@ class Planner:
                 )
             )
             for hour in discharge_group:
-                hour.set_power_watts(power)
+                hour.set_power(power)
 
     def _mark_possible_charge_hours_with_power(
         self, charge_plan: ChargePlan, battery: Battery, power: int
     ):
         is_discharge_hour: Callable[[ChargeHour], bool]
-        is_discharge_hour = lambda hour: hour.get_power_watts() > 0
+        is_discharge_hour = lambda hour: hour.get_power() > 0
         all_discharge_hours = list(
             filter(is_discharge_hour, charge_plan.get_hours_list())
         )
@@ -321,7 +321,7 @@ class Planner:
                 )
             )
             for hour in charge_hours:
-                hour.set_power_watts(power)
+                hour.set_power(power)
 
     def _find_and_mark_charge_and_discharge_hours(self, charge_plan: ChargePlan):
         hours = charge_plan.get_hours_list()
@@ -351,15 +351,15 @@ class Planner:
 
         for d in charge_hours_with_possible_discharge_hours_sorted_last_hour_first:
             charge: ChargeHour = d["charge_hour"]  # type: ignore
-            if charge.get_power_watts() == 0:
-                charge.set_power_watts(-1)
+            if charge.get_power() == 0:
+                charge.set_power(-1)
 
             discharges: list[ChargeHour] = d["discharge_hours"]  # type: ignore
             discharges = sorted(discharges, key=lambda hour: hour.get_export_price())
             while discharges:
                 best_discharge = discharges.pop()
-                if best_discharge.get_power_watts() == 0:
-                    best_discharge.set_power_watts(1)
+                if best_discharge.get_power() == 0:
+                    best_discharge.set_power(1)
                     break
 
     def _create_best_charge_plan(self, charge_plan: ChargePlan, battery: Battery):
@@ -391,14 +391,14 @@ class Planner:
         #     hour.get_power_watts() == 2 or hour.get_power_watts() == 11
         # )
 
-        is_possible_charge_hour = not battery.is_full() and hour.get_power_watts() == -1
+        is_possible_charge_hour = not battery.is_full() and hour.get_power() == -1
 
         is_possible_discharge_hour = (
             not battery.is_empty()
             and hour.get_export_price() > battery.get_average_charge_cost()
-        ) or hour.get_power_watts() == 1
+        ) or hour.get_power() == 1
 
-        hour.set_power_watts(0)
+        hour.set_power(0)
 
         charge_next_hour_plan = None
         idle_next_hour_plan = None
@@ -474,7 +474,7 @@ def _get_possible_discharge_hours_between_this_and_next_charge(
         if hour.get_time() > charge_hour.get_time():
             if _is_possible_charge_hour(hour) and discharge_hours:
                 break  # A next possible charge hour was found
-            if hour.get_power_watts() == 1 or hour.get_power_watts() == 2:
+            if hour.get_power() == 1 or hour.get_power() == 2:
                 # if hour.get_export_price() > charge_hour.get_import_price():
                 discharge_hours.append(hour)
 
@@ -495,7 +495,7 @@ def _get_possible_charge_hours_between_this_and_previous_discharge(
         if hour.get_time() < discharge_hour.get_time():
             if _is_possible_discharge_hour(hour) and charge_hours:
                 break  # A previous possible discharge hour was found
-            if hour.get_power_watts() == -1 or hour.get_power_watts() == -2:
+            if hour.get_power() == -1 or hour.get_power() == -2:
                 charge_hours.append(hour)
 
     price_sorted_charge_hours = sorted(
@@ -514,18 +514,18 @@ def _get_best_charge_hour_between_this_and_previous_discharge(
         if hour.get_time() < discharge_hour.get_time():
             if _is_possible_discharge_hour(hour) and charge_hours:
                 break  # A previous possible discharge hour was found
-            if hour.get_power_watts() == -1:
+            if hour.get_power() == -1:
                 charge_hours.append(hour)
     return sorted(charge_hours, key=lambda hour: hour.get_import_price()).pop(0)
 
 
 def _is_possible_charge_hour(hour: ChargeHour):
-    power = hour.get_power_watts()
+    power = hour.get_power()
     return power == -1 or power == -2
 
 
 def _is_possible_discharge_hour(hour: ChargeHour):
-    power = hour.get_power_watts()
+    power = hour.get_power()
     return power == 1 or power == 2
 
 
@@ -555,7 +555,7 @@ def _mark_possible_discharge_hours_after(
             charge_hour.get_import_price() < hour.get_export_price()
             and charge_hour.get_time() < hour.get_time()
         ):
-            hour.set_power_watts(1)
+            hour.set_power(1)
             # print(hour)
 
 
@@ -567,7 +567,7 @@ def _find_all_possible_discharge_hours(
         if (
             charge_hour.get_import_price() < hour.get_export_price()
             and charge_hour.get_time() < hour.get_time()
-            and abs(hour.get_power_watts()) != 2
+            and abs(hour.get_power()) != 2
         ):
             discharge_hours.append(hour)
     return discharge_hours

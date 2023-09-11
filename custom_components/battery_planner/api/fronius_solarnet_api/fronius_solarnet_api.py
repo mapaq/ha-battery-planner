@@ -53,7 +53,7 @@ class FroniusSolarnetApi(BatteryApiInterface):
             self._add_schedules_for_hour(
                 solarnet_schedules,
                 charge_hour.get_time(),
-                charge_hour.get_power_watts(),
+                charge_hour.get_power(),
             )
 
         return await self._post_schedule(list(solarnet_schedules.values()))

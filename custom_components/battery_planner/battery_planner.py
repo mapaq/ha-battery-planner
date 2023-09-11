@@ -84,7 +84,7 @@ class BatteryPlanner:
         next_hour = current_hour + 1
         while not battery.is_full():
             charge_hour = ChargeHour(next_hour, 0.0, 0.0, charge_power)
-            battery.charge(power, charge_hour)
+            charge_hour.set_power(battery.charge(power, charge_hour))
             charge_plan.add_charge_hour(charge_hour)
             next_hour += 1
 

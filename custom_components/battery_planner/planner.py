@@ -18,12 +18,14 @@ class Planner:
     """Logic algorithm class that creates a charge plan based on a list of electricity prices"""
 
     _cheap_import_price_limit: float
+    _planned_hours: list[ChargeHour]
 
     def __init__(
         self,
         cheap_import_price_limit: float,
     ):
         self._cheap_import_price_limit = cheap_import_price_limit
+        self._planned_hours = []
 
     def create_price_arbitrage_plan(
         self,
@@ -52,17 +54,40 @@ class Planner:
         empty_charge_plan = _empty_charge_plan(
             _map_prices_to_hour(import_prices, export_prices, start_hour)
         )
+        self._planned_hours = []
+        # TODO: Don't have the battery degradation cost included in the import_price series. Add it
+        # later to the import price so that the yield calculation is based on only the grid prices.
+        # Maybe add it to all the import prices here while creating the plan, then subtract it
+        # again so that the resulting charge plan only calculates yield based on the grid price.
 
-        best_plans = {"best": empty_charge_plan.clone()}
-        self._create_charge_plans(best_plans, empty_charge_plan.clone(), 0, battery)
+        # During the first run, we shall pretend that the battery is only charged and
+        # discharged during one hour. Even if capacity is larger, we set the available capacity
+        # to the max discharge level.
 
-        planned_hours: list[ChargeHour] = []
-        charge_plan = best_plans["best"]
+        # temp_battery = Battery(
+        #     capacity=max(
+        #         battery.get_max_charge_power(), battery.get_max_discharge_power()
+        #     ),
+        #     max_charge_power=battery.get_max_charge_power(),
+        #     max_discharge_power=battery.get_max_discharge_power(),
+        #     upper_soc_limit=100,
+        #     lower_soc_limit=0,
+        # )
+        # temp_battery.set_energy(
+        #     min(battery.get_available_energy(), temp_battery.get_capacity())
+        # )
+        # temp_battery.set_average_charge_cost(battery.get_average_charge_cost())
+        charge_plan = self._find_best_charge_plan(empty_charge_plan, battery)
+
         for hour in charge_plan.get_hours_list():
-            if hour.get_power_watts() != 0:
-                planned_hours.append(charge_plan.pop(charge_plan.index_of(hour)))
+            if hour.get_power() != 0:
+                self._planned_hours.append(charge_plan.pop(charge_plan.index_of(hour)))
 
         # TODO: Loop this the number of hours needed to fill, or redo until max_power = 0?
+
+        # During the second run, I still need to charge the battery when passing an hour that
+        # already has power set. But that hour shall not be taken into account regarding price and
+        # in the local min/max comparison. It shall only update the battery soc, nothing else.
         if battery.needed_hours_to_fill() > 1:
             # TODO: This way of changing max power only works one time
             # Need to store previous max power if several hours needed
@@ -74,31 +99,40 @@ class Planner:
             )
             battery.set_max_charge_power(next_charge_power)
             battery.set_max_discharge_power(next_discharge_power)
-            best_plans = {"best": charge_plan.clone()}
-            self._create_charge_plans(best_plans, charge_plan.clone(), 0, battery)
-            charge_plan = best_plans["best"]
+            charge_plan = self._find_best_charge_plan(charge_plan.clone(), battery)
 
-        for hour in planned_hours:
+        # Put all hours into the charge plan again
+        for hour in self._planned_hours:
             charge_plan.add_charge_hour(hour)
+        return charge_plan
 
-        return best_plans["best"]
+    def _find_best_charge_plan(
+        self, empty_charge_plan: ChargePlan, battery: Battery
+    ) -> ChargePlan:
+        best_plan = {"best": empty_charge_plan.clone()}
+        self._create_charge_plans(best_plan, empty_charge_plan.clone(), 0, battery)
+        return best_plan["best"]
 
     def _create_charge_plans(
         self,
-        best_plans: dict[str, ChargePlan],
+        best_plan: dict[str, ChargePlan],
         charge_plan: ChargePlan,
         index: int,
         battery: Battery,
-    ):
+    ) -> None:
         try:
             charge_plan.get_by_index(index)
         except IndexError:
-            if charge_plan.expected_yield() > best_plans["best"].expected_yield():
-                best_plans["best"] = charge_plan.clone()
+            if charge_plan.expected_yield() > best_plan["best"].expected_yield():
+                best_plan["best"] = charge_plan.clone()
             return
 
         charge_hour = charge_plan.get_by_index(index)
         next_hour_index = index + 1
+
+        # for planned_hour in self._planned_hours:
+        #     if charge_hour.get_time().hour - planned_hour.get_time().hour == 1:
+        #         battery.add_energy(planned_hour.get_power())
 
         charge_next_hour_plan = None
         idle_next_hour_plan = None
@@ -109,31 +143,51 @@ class Planner:
         discharge_next_hour_plan = charge_plan.clone()
 
         charged_battery = battery.clone()
+        # if charge_hour.get_power() > 0:
+        #     charge_hour.set_power(
+        #         charged_battery.charge(charge_hour.get_absolute_power(), charge_hour)
+        #     )
+        #     self._create_charge_plans(
+        #         best_plan, charge_plan.clone(), next_hour_index, charged_battery
+        #     )
+        #     return
         if _is_possible_charge_hour(charge_plan, charge_hour, charged_battery):
             hour_to_charge = charge_hour.clone()
-            charged_battery.charge_max_power_for_one_hour(hour_to_charge)
+            hour_to_charge.set_power(
+                charged_battery.charge_max_power_for_one_hour(hour_to_charge)
+            )
             charge_next_hour_plan.add_charge_hour(hour_to_charge)
             self._create_charge_plans(
-                best_plans,
+                best_plan,
                 charge_next_hour_plan.clone(),
                 next_hour_index,
                 charged_battery.clone(),
             )
 
         discharged_battery = battery.clone()
+        # if charge_hour.get_power() < 0:
+        #     charge_hour.set_power(
+        #         discharged_battery.discharge(charge_hour.get_absolute_power())
+        #     )
+        #     self._create_charge_plans(
+        #         best_plan, charge_plan.clone(), next_hour_index, discharged_battery
+        #     )
+        #     return
         if _is_possible_discharge_hour(charge_plan, charge_hour, discharged_battery):
             hour_to_discharge = charge_hour.clone()
-            discharged_battery.discharge_max_power_for_one_hour(hour_to_discharge)
+            hour_to_discharge.set_power(
+                discharged_battery.discharge_max_power_for_one_hour()
+            )
             discharge_next_hour_plan.add_charge_hour(hour_to_discharge)
             self._create_charge_plans(
-                best_plans,
+                best_plan,
                 discharge_next_hour_plan.clone(),
                 next_hour_index,
                 discharged_battery.clone(),
             )
 
         self._create_charge_plans(
-            best_plans,
+            best_plan,
             idle_next_hour_plan.clone(),
             next_hour_index,
             battery.clone(),
@@ -172,7 +226,7 @@ def _is_possible_charge_hour(
         not battery.is_full()
         and _is_lowest_price_before_next_discharge(charge_hour, charge_plan)
         and _is_local_min_import_price(charge_hour, charge_plan)
-        and charge_hour.get_power_watts() == 0
+        and charge_hour.get_power() == 0
     )
 
 
@@ -184,7 +238,7 @@ def _is_possible_discharge_hour(
         and _export_price_is_larger_than_average_charge_cost(charge_hour, battery)
         and _is_highest_price_before_next_charge(charge_hour, charge_plan)
         and _is_local_max_export_price(charge_hour, charge_plan)
-        and charge_hour.get_power_watts() == 0
+        and charge_hour.get_power() == 0
     )
 
 

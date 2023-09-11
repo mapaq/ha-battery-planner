@@ -62,7 +62,7 @@ class ChargeHour:
             hour=self.get_index(),
             import_price=self.get_import_price(),
             export_price=self.get_export_price(),
-            power=self.get_power_watts(),
+            power=self.get_power(),
         )
 
     def set_hour(self, hour: int):
@@ -86,17 +86,21 @@ class ChargeHour:
             self._hour_dt.date(), time(hour=self._hour_dt.hour)
         ).isoformat()
 
-    def set_power_watts(self, power_watts: int) -> None:
+    def set_power(self, power_watts: int) -> None:
         """Set the power level for the hour, will be 0 if not set
         power_watts - (W) Negative value = charge (consuming), positive = discharge (producing)
         """
         self._power_watts = power_watts
 
-    def get_power_watts(self) -> int:
+    def get_power(self) -> int:
         """Get the power level for the hour, will be 0 if not previously set
         Return power (W) Negative value = charge (consuming), positive = discharge (producing)
         """
         return self._power_watts
+
+    def get_absolute_power(self) -> int:
+        """Get the absolute power, doesn't care about charging or discharging"""
+        return abs(self._power_watts)
 
     def set_import_price(self, price: float):
         """Set the electricity import price for this hour"""
