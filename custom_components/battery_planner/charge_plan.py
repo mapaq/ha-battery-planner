@@ -85,14 +85,14 @@ class ChargePlan:
         hour - The hour as a datetime object
         Return power (W) Negative value is charge (consuming), positive is discharge (producing)
         """
-        return int(self.get_by_dt(hour).get_power_watts())
+        return int(self.get_by_dt(hour).get_power())
 
     def set_power(self, hour: datetime, power: int):
         """Set power value for the given hour
         hour - The hour as a datetime object
         power - (W) Negative value means charge (consuming), positive means discharge (producing)
         """
-        self.get_by_dt(hour).set_power_watts(power)
+        self.get_by_dt(hour).set_power(power)
 
     def get_price(self, hour: datetime) -> float:
         """Get the price/kWh for the given hour"""
@@ -101,7 +101,7 @@ class ChargePlan:
     def set_price(self, hour: datetime, price: float):
         """Set the price/kWh for the given hour"""
         # TODO: Change to two separate methods? Check if it must be used.
-        if self.get_by_dt(hour).get_power_watts() <= 0:
+        if self.get_by_dt(hour).get_power() <= 0:
             self.get_by_dt(hour).set_import_price(price)
         else:
             self.get_by_dt(hour).set_export_price(price)
@@ -135,7 +135,7 @@ class ChargePlan:
         """Get expected financial yield of the planned charging and discharging"""
         expected_yield = 0
         for charge_hour in self._schedule.values():
-            power_kw = charge_hour.get_power_watts() / 1000
+            power_kw = charge_hour.get_power() / 1000
             price = charge_hour.get_active_price()
             if price is None:
                 # Price might be None when plan is fetched from inverter
@@ -149,7 +149,7 @@ class ChargePlan:
         energy_added = 0
         total_charging_price = 0
         for charge_hour in self._schedule.values():
-            power_watts = charge_hour.get_power_watts()
+            power_watts = charge_hour.get_power()
             price_per_kwh = charge_hour.get_active_price()
             if power_watts < 0:
                 power_watts = power_watts * -1
@@ -163,7 +163,7 @@ class ChargePlan:
     def is_empty_plan(self) -> bool:
         """Return True if all power levels for the charge plan is 0"""
         for charge_hour in self._schedule.values():
-            if charge_hour.get_power_watts() != 0:
+            if charge_hour.get_power() != 0:
                 return False
         return True
 

@@ -105,6 +105,13 @@ class Battery:
         """Get stored energy amount (Wh)"""
         return self._energy_watthours
 
+    def get_available_energy(self) -> int:
+        """Get the available energy above lower SoC limit"""
+        energy_above_lower_soc = max(
+            0, int(self.get_energy() - self.min_energy_limit())
+        )
+        return energy_above_lower_soc
+
     def set_average_charge_cost(self, cost: float) -> None:
         """Set the average charge cost"""
         self._average_charge_cost_per_kwh = cost
@@ -143,25 +150,23 @@ class Battery:
         charge_power = min(
             self.remaining_energy_below_upper_soc_limit(), max_charge_power
         )
-        charge_hour.set_power_watts(int(-charge_power))
-        self.update_average_charge_cost(charge_hour)
+        self.update_average_charge_cost(charge_power, charge_hour.get_import_price())
         self._energy_watthours += charge_power
         return int(-charge_power)
 
-    def discharge_max_power_for_one_hour(self, charge_hour: ChargeHour) -> int:
+    def discharge_max_power_for_one_hour(self) -> int:
         """Use max allowed discharge level
 
         Return the power level to discharge the battery"""
-        return self.discharge(self._max_discharge_power, charge_hour)
+        return self.discharge(self._max_discharge_power)
 
-    def discharge(self, max_discharge_power: int, charge_hour: ChargeHour) -> int:
+    def discharge(self, max_discharge_power: int) -> int:
         """Decrease stored energy of the fictive battery
 
         Return the power level to discharge the battery"""
         discharge_power = min(
             self.remaining_energy_above_lower_soc_limit(), max_discharge_power
         )
-        charge_hour.set_power_watts(int(discharge_power))
         self._energy_watthours -= discharge_power
         return int(discharge_power)
 
@@ -177,10 +182,10 @@ class Battery:
             0, int(self._energy_watthours - (self._capacity * self._lower_soc_limit))
         )
 
-    def calculate_new_average_charge_cost(self, charge_hour: ChargeHour) -> float:
+    def calculate_new_average_charge_cost(self, power: int, price: float) -> float:
         """Calculate new average charge cost for the energy stored in the battery"""
-        new_energy_watthours = charge_hour.get_power_watts() * -1
-        new_charge_cost = new_energy_watthours * charge_hour.get_active_price()
+        new_energy_watthours = power
+        new_charge_cost = new_energy_watthours * price
         previous_charge_cost = (
             self._average_charge_cost_per_kwh * self._energy_watthours
         )
@@ -189,10 +194,10 @@ class Battery:
         )
         return new_average_charge_cost
 
-    def update_average_charge_cost(self, charge_hour: ChargeHour) -> None:
+    def update_average_charge_cost(self, power: int, price: float) -> None:
         """Update the average charge cost with the new hour"""
         self._average_charge_cost_per_kwh = self.calculate_new_average_charge_cost(
-            charge_hour
+            power, price
         )
 
     def needed_hours_to_deplete(self) -> int:
