@@ -89,6 +89,7 @@ class TestPlanner:
             short_price_series_with_one_cycle_battery_charged_1,
             short_price_series_with_one_cycle_battery_charged_2,
             short_price_series_with_one_cycle_battery_charged_3,
+            short_price_series_with_one_cycle_battery_charged_4,
         ],
     )
     def test_charge_cost_for_already_charged_battery(
@@ -152,8 +153,8 @@ class TestPlanner:
         [
             short_price_series_with_3_cycles_start_at_04,
             long_price_series_start_on_hour_21,
-            # long_price_series_start_hour_18_soc_90,
-            # long_price_series_start_hour_21_soc_10,
+            long_price_series_start_hour_18_soc_90,
+            long_price_series_start_hour_21_soc_10,
         ],
     )
     def test_ignore_passed_hours(

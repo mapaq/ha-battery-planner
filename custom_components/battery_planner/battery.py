@@ -48,11 +48,12 @@ class Battery:
     def __str__(self):
         readable = {}
         readable["Capacity"] = self._capacity
-        readable["Upper SoC limit"] = self._upper_soc_limit
-        readable["Lower SoC limit"] = self._lower_soc_limit
+        readable["Upper SoC limit"] = self.get_upper_soc_limit()
+        readable["Lower SoC limit"] = self.get_lower_soc_limit()
         readable["Max charge power"] = self._max_charge_power
         readable["Max discharge power"] = self._max_discharge_power
         readable["Energy level"] = self._energy_watthours
+        readable["Avg. charge cost"] = self.get_average_charge_cost()
         return str(readable)
 
     def set_soc(self, soc: int):
@@ -210,13 +211,26 @@ class Battery:
 
     def clone(self):
         """Create a new object as a clone of this instance"""
-        cloned_battery = Battery(
-            capacity=self._capacity,
-            max_charge_power=self._max_charge_power,
-            max_discharge_power=self._max_discharge_power,
-            upper_soc_limit=int(self._upper_soc_limit * 100),
-            lower_soc_limit=int(self._lower_soc_limit * 100),
+        clone = Battery(
+            self.get_capacity(),
+            self.get_max_charge_power(),
+            self.get_max_discharge_power(),
+            self.get_upper_soc_limit(),
+            self.get_lower_soc_limit(),
         )
-        cloned_battery.set_energy(self._energy_watthours)
-        cloned_battery.set_average_charge_cost(self._average_charge_cost_per_kwh)
-        return cloned_battery
+        clone.set_energy(self._energy_watthours)
+        clone.set_average_charge_cost(self._average_charge_cost_per_kwh)
+        return clone
+
+    def empty_clone(self, charged_up_to_lower_soc: bool = False):
+        """Create an empty clone of the battery where only settings is inherited"""
+        empty_battery = Battery(
+            self.get_capacity(),
+            self.get_max_charge_power(),
+            self.get_max_discharge_power(),
+            self.get_upper_soc_limit(),
+            self.get_lower_soc_limit(),
+        )
+        if charged_up_to_lower_soc:
+            empty_battery.set_soc(self.get_lower_soc_limit())
+        return empty_battery

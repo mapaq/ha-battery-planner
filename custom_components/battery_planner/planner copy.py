@@ -423,7 +423,7 @@ class Planner:
         discharged_battery = battery.clone()
         if is_possible_discharge_hour:
             hour_to_discharge = hour.clone()
-            discharged_battery.discharge_max_power_for_one_hour(hour_to_discharge)
+            discharged_battery.discharge_max_power_for_one_hour()
             discharge_next_hour_plan.add_charge_hour(hour_to_discharge)
             self._create_charge_plans(
                 best_plans,
