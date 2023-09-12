@@ -34,6 +34,15 @@ short_price_series_with_one_cycle_battery_charged_3 = {
     "average_charge_cost": [4.0],
 }
 
+short_price_series_with_one_cycle_battery_charged_4 = {
+    "import": [5.0, 2.0, 6.0, 4.0],
+    "export": [4.0, 1.0, 5.0, 1.0],
+    "yield": [4.0],  # 4.0 - 2.0 + 5.0 - 3.0
+    "plan": [1000, -1000, 1000, 0],
+    "battery_energy": [1000],
+    "average_charge_cost": [3.0],
+}
+
 short_price_series_with_2_cycles = {
     "import": [3.0, 2.0, 4.0, 1.0, 5.0],
     "export": [1.0, 1.0, 3.0, 2.0, 4.0],
@@ -770,13 +779,7 @@ long_price_series_start_hour_21_soc_10 = {
     },
     "start_hour": 21,
     "yield": round(
-        (
-            -2160 * 123.8
-            -4000 * 119.77
-            + 4000 * 281.38
-            + 2160 * 245.73
-        )
-        / 1000,
+        (-2160 * 123.8 - 4000 * 119.77 + 4000 * 281.38 + 2160 * 245.73) / 1000,
         2,
     ),
     "import": [
