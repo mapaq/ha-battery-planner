@@ -78,10 +78,7 @@ class TestPlanner:
             data["import"],
             data["export"],
         )
-        assert charge_plan.expected_yield() == data["yield"], f"\n{charge_plan}"
-        if "plan" in data:
-            for hour, power in enumerate(data["plan"]):
-                assert charge_plan.get_by_index(hour).get_power() == power
+        self._verify_plan(data, charge_plan)
 
     @pytest.mark.parametrize(
         "data",
@@ -126,10 +123,7 @@ class TestPlanner:
             data["import"],
             data["export"],
         )
-        assert charge_plan.expected_yield() == data["yield"], f"\n{charge_plan}"
-        if "plan" in data:
-            for hour, power in enumerate(data["plan"]):
-                assert charge_plan.get_by_index(hour).get_power() == power
+        self._verify_plan(data, charge_plan)
 
     @pytest.mark.parametrize(
         "data",
@@ -143,10 +137,7 @@ class TestPlanner:
             data["import"],
             data["export"],
         )
-        assert charge_plan.expected_yield() == data["yield"], f"\n{charge_plan}"
-        if "plan" in data:
-            for hour, power in enumerate(data["plan"]):
-                assert charge_plan.get_by_index(hour).get_power() == power
+        self._verify_plan(data, charge_plan)
 
     @pytest.mark.parametrize(
         "data",
@@ -181,13 +172,34 @@ class TestPlanner:
         charge_plan: ChargePlan = planner.create_price_arbitrage_plan(
             battery, data["import"], data["export"], start_hour
         )
+        assert charge_plan.get_by_index(0).get_time().hour == start_hour
+        self._verify_plan(data, charge_plan)
+
+    @pytest.mark.parametrize(
+        "data",
+        [
+            short_price_series_with_low_prices,
+        ],
+    )
+    def test_charge_at_low_price(self, data):
+        planner = Planner(data["low_price_threshold"])
+        batt = data["battery"]
+        battery = Battery(
+            batt["capacity"],
+            batt["max_charge_power"],
+            batt["max_discharge_power"],
+            batt["upper_soc_limit"],
+            batt["lower_soc_limit"],
+        )
+        battery.set_soc(batt["soc"])
+        charge_plan = planner.create_price_arbitrage_plan(
+            battery, data["import"], data["export"]
+        )
+        self._verify_plan(data, charge_plan)
+
+    def _verify_plan(self, data, charge_plan: ChargePlan):
         assert charge_plan.expected_yield() == data["yield"], f"\n{charge_plan}"
         assert charge_plan.len() == len(data["plan"])
-        assert charge_plan.get_by_index(0).get_time().hour == start_hour
         if "plan" in data:
             for hour, power in enumerate(data["plan"]):
                 assert charge_plan.get_by_index(hour).get_power() == power
-
-
-# Need to pass datetime with "first_hour" to the planner, or simply remove passed hours before
-# sending to planner

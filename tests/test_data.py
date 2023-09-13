@@ -64,6 +64,22 @@ short_price_series_with_consecutive_charge_battery_two_kw_three_kwh = {
     "plan": [0, -1000, -2000, 0, 1000, 2000, 0],
 }
 
+short_price_series_with_low_prices = {
+    "import": [15, 16, 14, 16, 17, 13, 15],
+    "export": [10, 9, 8, 11, 12, 7, 10],
+    "yield": -27,
+    "plan": [0, 0, -1000, 0, 0, -1000, 0],
+    "low_price_threshold": 20,
+    "battery": {
+        "capacity": 2000,
+        "max_charge_power": 1000,
+        "max_discharge_power": 1000,
+        "upper_soc_limit": 100,
+        "lower_soc_limit": 0,
+        "soc": 0,
+    },
+}
+
 short_price_series_with_3_cycles = {
     "import": [
         97.58,  # 1

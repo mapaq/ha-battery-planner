@@ -44,7 +44,7 @@ async def _create_battery_planner_and_add_to_hass(
         battery_planner = BatteryPlanner(
             hass=hass,
             battery=battery,
-            cheap_price=config.get("cheap_price"),
+            low_price_threshold=config.get("low_price_threshold"),
         )
         hass.data[DOMAIN] = battery_planner
         _LOGGER.debug("Added %s to hass.data", DOMAIN)

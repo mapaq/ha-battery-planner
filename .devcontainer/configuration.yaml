@@ -11,7 +11,7 @@ battery_planner:
   lower_soc_limit: 10
   max_charge_power: 3300
   max_discharge_power: 6600
-  cheap_price: 0.3
+  low_price_threshold: 0.3
 
 sensor:
   - platform: battery_planner
