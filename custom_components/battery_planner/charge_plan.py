@@ -94,18 +94,6 @@ class ChargePlan:
         """
         self.get_by_dt(hour).set_power(power)
 
-    def get_price(self, hour: datetime) -> float:
-        """Get the price/kWh for the given hour"""
-        return self.get_by_dt(hour).get_active_price()
-
-    def set_price(self, hour: datetime, price: float):
-        """Set the price/kWh for the given hour"""
-        # TODO: Change to two separate methods? Check if it must be used.
-        if self.get_by_dt(hour).get_power() <= 0:
-            self.get_by_dt(hour).set_import_price(price)
-        else:
-            self.get_by_dt(hour).set_export_price(price)
-
     def get_hours_list(self) -> list[ChargeHour]:
         """Get all scheduled hours as a list"""
         return list(self._schedule.values())
@@ -130,7 +118,8 @@ class ChargePlan:
 
     # TODO: Shall this calculation include the battery average charge cost?
     # It might need to do that if this is to be used by the sensor.
-    # The charge_plan should in that case have a battery object with inital values it was created with.
+    # The charge_plan should in that case have a battery object with inital values it
+    # was created with.
     def expected_yield(self) -> float:
         """Get expected financial yield of the planned charging and discharging"""
         expected_yield = 0
