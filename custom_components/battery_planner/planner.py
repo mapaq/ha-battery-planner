@@ -60,6 +60,8 @@ class Planner:
         # Maybe add it to all the import prices here while creating the plan, then subtract it
         # again so that the resulting charge plan only calculates yield based on the grid price.
 
+        # TODO: Charge if low price
+
         self._charge_low_and_discharge_high(charge_plan.get_hours_list(), battery)
         self._find_and_fill_gaps(charge_plan.get_hours_list(), initial_battery)
 

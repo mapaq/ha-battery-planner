@@ -7,10 +7,10 @@ logger:
 
 battery_planner:
   capacity: 7700
-  upper_soc_limit: 90
+  upper_soc_limit: 93
   lower_soc_limit: 10
-  max_charge_power: 4000
-  max_discharge_power: 4000
+  max_charge_power: 3300
+  max_discharge_power: 6600
   cheap_price: 0.3
 
 sensor:
