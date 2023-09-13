@@ -24,7 +24,7 @@ SECRETS_PATH = "secrets.json"
 class BatteryPlanner:
     """Main class to handle data and push updates"""
 
-    _latest_prices: dict[str, float]
+    _latest_prices: dict[str, list[float]]
 
     _hass: HomeAssistant
     _active_charge_plan: ChargePlan
@@ -63,6 +63,7 @@ class BatteryPlanner:
             _LOGGER.error("Failed to clear the battery schedule")
         await self.get_active_charge_plan(refresh=True)
 
+    # TODO: Add a discharge service, just like the charge service
     async def charge(self, battery_state_of_charge: int, power: int) -> None:
         """Charge the battery now"""
         charge_plan = ChargePlan()
@@ -110,6 +111,8 @@ class BatteryPlanner:
         )
         _LOGGER.debug("Import prices = %s", import_prices)
         _LOGGER.debug("Export prices = %s", export_prices)
+        self._latest_prices["import"] = import_prices
+        self._latest_prices["export"] = export_prices
 
         battery = Battery(
             self._battery.get_capacity(),
@@ -148,11 +151,11 @@ class BatteryPlanner:
 
     async def _get_active_charge_plan(self) -> ChargePlan:
         active_charge_plan = await self._battery_api.get_active_charge_plan()
-        for hour in active_charge_plan.get_hours_dict():
-            if hour in self._latest_prices:
-                active_charge_plan.set_price(
-                    datetime.fromisoformat(hour), self._latest_prices[hour]
-                )
+        for hour in active_charge_plan.get_hours_list():
+            if "import" in self._latest_prices:
+                hour.set_import_price(self._latest_prices["import"][hour.get_index()])
+            if "export" in self._latest_prices:
+                hour.set_export_price(self._latest_prices["export"][hour.get_index()])
         return active_charge_plan
 
 
