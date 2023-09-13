@@ -16,14 +16,14 @@ SECRETS_PATH = "secrets.json"
 class Planner:
     """Logic algorithm class that creates a charge plan based on a list of electricity prices"""
 
-    _cheap_import_price_limit: float
+    _low_price_threshold: float
     _planned_hours: list[ChargeHour]
 
     def __init__(
         self,
-        cheap_import_price_limit: float,
+        low_price_threshold: float,
     ):
-        self._cheap_import_price_limit = cheap_import_price_limit
+        self._low_price_threshold = low_price_threshold
         self._planned_hours = []
 
     def create_price_arbitrage_plan(
@@ -60,12 +60,26 @@ class Planner:
         # Maybe add it to all the import prices here while creating the plan, then subtract it
         # again so that the resulting charge plan only calculates yield based on the grid price.
 
-        # TODO: Charge if low price
-
         self._charge_low_and_discharge_high(charge_plan.get_hours_list(), battery)
         self._find_and_fill_gaps(charge_plan.get_hours_list(), initial_battery)
 
+        if charge_plan.is_empty_plan():
+            self._charge_if_price_is_below_threshold(battery, charge_plan)
+
         return charge_plan
+
+    def _charge_if_price_is_below_threshold(
+        self, battery: Battery, charge_plan: ChargePlan
+    ):
+        print(battery)
+        for hour in sorted(
+            charge_plan.get_hours_list(), key=lambda h: h.get_import_price()
+        ):
+            if (
+                hour.get_import_price() < self._low_price_threshold
+                and not battery.is_full()
+            ):
+                hour.set_power(battery.charge_max_power_for_one_hour(hour))
 
     def _charge_low_and_discharge_high(
         self,

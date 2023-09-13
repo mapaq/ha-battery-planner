@@ -48,4 +48,4 @@ def hour_dt(hour: int) -> datetime:
 
 @pytest.fixture
 def planner() -> Planner:
-    return Planner(cheap_import_price_limit=0)
+    return Planner(low_price_threshold=0)

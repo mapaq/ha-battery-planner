@@ -24,7 +24,6 @@ SECRETS_PATH = "secrets.json"
 class BatteryPlanner:
     """Main class to handle data and push updates"""
 
-    _cheap_price: float
     _latest_prices: dict[str, float]
 
     _hass: HomeAssistant
@@ -37,15 +36,14 @@ class BatteryPlanner:
         self,
         hass: HomeAssistant,
         battery: Battery,
-        cheap_price: float,
+        low_price_threshold: float,
     ):
         self._hass = hass
         self._active_charge_plan = None  # type: ignore
         self._battery = battery
-        self._cheap_price = cheap_price
         self._latest_prices = {}
         self._battery_api = create_api_instance_from_secrets_file(hass)
-        self._planner = Planner(cheap_import_price_limit=0.2)
+        self._planner = Planner(low_price_threshold)
 
     async def stop(self) -> None:
         """Stop the battery"""
