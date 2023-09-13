@@ -101,7 +101,7 @@ class BatteryPlanner:
 
     async def reschedule(
         self,
-        battery_state_of_charge: int,
+        battery_state_of_charge: float,
         import_prices: list[float],
         export_prices: list[float],
     ) -> None:

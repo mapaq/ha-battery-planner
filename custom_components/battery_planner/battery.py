@@ -39,7 +39,7 @@ class Battery:
         self._max_discharge_power = max_discharge_power
         self._upper_soc_limit = upper_soc_limit / 100
         self._lower_soc_limit = lower_soc_limit / 100
-        self.set_soc(0)
+        self.set_soc(0.0)
         self._average_charge_cost_per_kwh = 0.0
 
     def __repr__(self):
@@ -56,7 +56,7 @@ class Battery:
         readable["Avg. charge cost"] = self.get_average_charge_cost()
         return str(readable)
 
-    def set_soc(self, soc: int):
+    def set_soc(self, soc: float):
         """Set state of charge and calculate the energy level of the battery
 
         soc - (%) The current state of charge of the battery"""
