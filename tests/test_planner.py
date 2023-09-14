@@ -6,7 +6,7 @@ import pytest
 
 from custom_components.battery_planner.planner import Planner
 from custom_components.battery_planner.battery import Battery
-from custom_components.battery_planner.charge_plan import ChargePlan, hour_iso_string
+from custom_components.battery_planner.charge_plan import ChargePlan
 from .fixtures import *
 from .test_data import *
 
@@ -182,7 +182,7 @@ class TestPlanner:
         ],
     )
     def test_charge_at_low_price(self, data):
-        planner = Planner(data["low_price_threshold"])
+        planner = Planner(0, 0, data["low_price_threshold"])
         batt = data["battery"]
         battery = Battery(
             batt["capacity"],

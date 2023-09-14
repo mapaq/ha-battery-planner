@@ -44,7 +44,6 @@ async def _create_battery_planner_and_add_to_hass(
         battery_planner = BatteryPlanner(
             hass=hass,
             battery=battery,
-            low_price_threshold=config.get("low_price_threshold"),
         )
         hass.data[DOMAIN] = battery_planner
         _LOGGER.debug("Added %s to hass.data", DOMAIN)
@@ -64,6 +63,9 @@ async def async_setup(hass: HomeAssistant, hass_config: Config) -> bool:
     #     import_prices_tomorrow: '{{ state_attr("sensor.electricity_price_buy", "tomorrow") }}'
     #     export_prices_today: '{{ state_attr("sensor.electricity_price_sell", "today") }}'
     #     export_prices_tomorrow: '{{ state_attr("sensor.electricity_price_sell", "tomorrow") }}'
+    #     battery_cycle_cost: 80
+    #     price_margin: 20
+    #     low_price_threshold: 20
     async def service_call_reschedule(service_call):
         """Get future prices and create new schedule"""
         _LOGGER.debug("%s: service_call_reschedule", DOMAIN)
@@ -80,10 +82,16 @@ async def async_setup(hass: HomeAssistant, hass_config: Config) -> bool:
         export_prices_tomorrow: list[float] = service_call.data.get(
             "export_prices_tomorrow", []
         )
+        battery_cycle_cost: float = service_call.data.get("battery_cycle_cost", 0)
+        price_margin: float = service_call.data.get("price_margin", 0)
+        low_price_threshold: float = service_call.data.get("low_price_threshold", 0)
         await battery_planner.reschedule(
             battery_soc,
             import_prices_today + import_prices_tomorrow,
             export_prices_today + export_prices_tomorrow,
+            battery_cycle_cost,
+            price_margin,
+            low_price_threshold,
         )
 
     async def service_call_stop(service_call):

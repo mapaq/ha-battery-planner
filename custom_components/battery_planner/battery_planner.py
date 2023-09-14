@@ -30,20 +30,17 @@ class BatteryPlanner:
     _active_charge_plan: ChargePlan
     _battery: Battery
     _battery_api: BatteryApiInterface
-    _planner: Planner
 
     def __init__(
         self,
         hass: HomeAssistant,
         battery: Battery,
-        low_price_threshold: float,
     ):
         self._hass = hass
         self._active_charge_plan = None  # type: ignore
         self._battery = battery
         self._latest_prices = {}
         self._battery_api = create_api_instance_from_secrets_file(hass)
-        self._planner = Planner(low_price_threshold)
 
     async def stop(self) -> None:
         """Stop the battery"""
@@ -103,6 +100,9 @@ class BatteryPlanner:
         battery_state_of_charge: float,
         import_prices: list[float],
         export_prices: list[float],
+        battery_cycle_cost: float,
+        price_margin: float,
+        low_price_threshold: float,
     ) -> None:
         """Get future prices and create new schedule"""
         _LOGGER.info(
@@ -111,8 +111,16 @@ class BatteryPlanner:
         )
         _LOGGER.debug("Import prices = %s", import_prices)
         _LOGGER.debug("Export prices = %s", export_prices)
+        _LOGGER.debug("Battery cycle cost = %s", battery_cycle_cost)
+        _LOGGER.debug("Price margin = %s", price_margin)
         self._latest_prices["import"] = import_prices
         self._latest_prices["export"] = export_prices
+
+        planner: Planner = Planner(
+            battery_cycle_cost,
+            price_margin,
+            low_price_threshold,
+        )
 
         battery = Battery(
             self._battery.get_capacity(),
@@ -125,8 +133,11 @@ class BatteryPlanner:
 
         next_hour = (datetime.now() + timedelta(hours=1)).hour
 
-        charge_plan = self._planner.create_price_arbitrage_plan(
-            battery, import_prices, export_prices, next_hour
+        charge_plan = planner.create_price_arbitrage_plan(
+            battery,
+            import_prices,
+            export_prices,
+            next_hour,
         )
 
         _LOGGER.debug("New charge plan will be scheduled:\n%s", charge_plan)
