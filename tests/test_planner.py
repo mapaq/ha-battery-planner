@@ -148,11 +148,10 @@ class TestPlanner:
             long_price_series_start_hour_21_soc_10,
         ],
     )
-    def test_ignore_passed_hours(
-        self, planner: Planner, battery_one_kw_one_kwh: Battery, data
-    ):
+    def test_ignore_passed_hours(self, battery_one_kw_one_kwh: Battery, data):
         battery: Battery = battery_one_kw_one_kwh
         start_hour = data["start_hour"]
+        cycle_cost = 0
         if "battery" in data:
             batt = data["battery"]
             battery = Battery(
@@ -164,11 +163,10 @@ class TestPlanner:
             )
             battery.set_soc(batt["soc"])
 
-            # TODO: Remove when input_number for battery degradation has been added
-            if "degradation_cost" in data["battery"]:
-                for i, imp in enumerate(data["import"]):
-                    data["import"][i] = imp + data["battery"]["degradation_cost"]
+            if "cycle_cost" in data["battery"]:
+                cycle_cost = data["battery"]["cycle_cost"]
 
+        planner = Planner(cycle_cost, 0, 0)
         charge_plan: ChargePlan = planner.create_price_arbitrage_plan(
             battery, data["import"], data["export"], start_hour
         )

@@ -58,10 +58,6 @@ class Planner:
             _map_prices_to_hour(import_prices, export_prices, start_hour)
         )
         initial_battery = battery.clone()
-        # TODO: Don't have the battery degradation cost included in the import_price series. Add it
-        # later to the import price so that the yield calculation is based on only the grid prices.
-        # Maybe add it to all the import prices here while creating the plan, then subtract it
-        # again so that the resulting charge plan only calculates yield based on the grid price.
 
         self._charge_low_and_discharge_high(charge_plan.get_hours_list(), battery)
         self._find_and_fill_gaps(charge_plan.get_hours_list(), initial_battery)
