@@ -16,15 +16,19 @@ SECRETS_PATH = "secrets.json"
 class Planner:
     """Logic algorithm class that creates a charge plan based on a list of electricity prices"""
 
+    _battery_cycle_cost: float
+    _price_margin: float
     _low_price_threshold: float
-    _planned_hours: list[ChargeHour]
 
     def __init__(
         self,
-        low_price_threshold: float,
+        battery_cycle_cost: float = 0,
+        price_margin: float = 0,
+        low_price_threshold: float = 0,
     ):
+        self._battery_cycle_cost = battery_cycle_cost
+        self._price_margin = price_margin
         self._low_price_threshold = low_price_threshold
-        self._planned_hours = []
 
     def create_price_arbitrage_plan(
         self,
@@ -54,7 +58,6 @@ class Planner:
             _map_prices_to_hour(import_prices, export_prices, start_hour)
         )
         initial_battery = battery.clone()
-        self._planned_hours = []
         # TODO: Don't have the battery degradation cost included in the import_price series. Add it
         # later to the import price so that the yield calculation is based on only the grid prices.
         # Maybe add it to all the import prices here while creating the plan, then subtract it
@@ -126,7 +129,7 @@ class Planner:
                     )
                 if (
                     charge_comes_before_discharge
-                    and charge_hour.get_import_price()
+                    and self._charge_cost(charge_hour)
                     < discharge_hour.get_export_price()
                     and discharge_hour.get_export_price()
                     > battery.get_average_charge_cost()
@@ -138,6 +141,13 @@ class Planner:
                     )
                     last_charged_hour_index = charge_hour.get_index()
         return last_charged_hour_index
+
+    def _charge_cost(self, charge_hour: ChargeHour):
+        return (
+            charge_hour.get_import_price()
+            + self._battery_cycle_cost
+            + self._price_margin
+        )
 
     def _discharge_at_highest_priced_hours(
         self,

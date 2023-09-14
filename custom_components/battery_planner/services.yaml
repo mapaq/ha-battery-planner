@@ -37,6 +37,27 @@ reschedule:
       advanced: false
       example: "{{ state_attr('sensor.nordpool', 'tomorrow') }}"
       default: "{{ state_attr('sensor.nordpool', 'tomorrow') }}"
+    battery_cycle_cost:
+      name: Battery cycle cost
+      description: Added on top of import prices. Cost of making one kWh charge cycle, which slowly degrades the battery. (battery cost / battery capacity kWh / lifetime charge cycles)
+      required: true
+      advanced: false
+      example: 80
+      default: 0
+    price_margin:
+      name: Price margin
+      description: Price margin between import_price + battery_cycle_cost and export_price that must be reached to plan a charge cycle
+      required: false
+      advanced: false
+      example: 20
+      default: 0
+    low_price_threshold:
+      name: Low price threshold
+      description: If the battery is not cycled, will charge anyway if the price is below this level
+      required: false
+      advanced: false
+      example: 20
+      default: 0
 
 stop:
   name: Stop
