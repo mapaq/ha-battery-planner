@@ -15,7 +15,9 @@ _LOGGER = logging.getLogger(__name__)
 
 def get_version() -> str:
     """Get the version of the component from manifest.json"""
-    with open("custom_components/battery_planner/manifest.json", "r", encoding="utf-8") as manifest:
+    with open(
+        "custom_components/battery_planner/manifest.json", "r", encoding="utf-8"
+    ) as manifest:
         return json.loads(manifest.read()).get("version")
 
 
@@ -52,7 +54,7 @@ async def _create_battery_planner_and_add_to_hass(
             battery=battery,
         )
         hass.data[DOMAIN] = battery_planner
-        _LOGGER.debug("Added %s to hass.data", DOMAIN)
+        _LOGGER.debug("Added %s (version %s) to hass.data", DOMAIN, VERSION)
     return True
 
 
