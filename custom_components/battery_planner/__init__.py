@@ -1,6 +1,7 @@
 """Battery Planner integration"""
 
 import logging
+import json
 
 from homeassistant.core import HomeAssistant, Config
 
@@ -12,10 +13,15 @@ from .battery import Battery
 _LOGGER = logging.getLogger(__name__)
 
 
-NAME = DOMAIN
-VERSION = "0.1.3"  # TODO: Get version from manifest.json
-ISSUEURL = "https://github.com/mapaq/ha-battery-planner/issues"
+def get_version() -> str:
+    """Get the version of the component from manifest.json"""
+    with open("custom_components/battery_planner/manifest.json", "r", encoding="utf-8") as manifest:
+        return json.loads(manifest.read()).get("version")
 
+
+NAME = DOMAIN
+ISSUEURL = "https://github.com/mapaq/ha-battery-planner/issues"
+VERSION = get_version()
 STARTUP = f"""
 -------------------------------------------------------------------
 {NAME}

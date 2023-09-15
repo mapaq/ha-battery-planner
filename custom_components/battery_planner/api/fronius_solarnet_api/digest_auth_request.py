@@ -3,10 +3,14 @@
 import logging
 import hashlib
 import re
+from typing import Callable
+
 import requests
 from requests import Response
 
 from homeassistant.core import HomeAssistant
+
+from ...const import GET, POST, REQUEST_TIMEOUT
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -25,101 +29,72 @@ class DigestAuthRequest:
         self._host = host
         self._username = username
         self._password = password
-        self._auth_data = None
+        self._auth_data = {}
         self._hass = hass
 
-    async def get(self, digest_uri: str, headers: dict[str, str] = None) -> Response:
+    async def get(self, digest_uri: str) -> Response:
         """GET request"""
-        url = f"{self._host}{digest_uri}"
+        request_type = GET
 
-        response = None
+        def request_builder(url, headers) -> Callable:
+            def request():
+                _LOGGER.debug("%s %s with headers=%s", GET, url, headers)
+                return requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT)
 
-        if self._auth_data is not None:
-            headers = {
-                "Authorization": create_auth_header(
-                    "GET", self._auth_data, digest_uri, self._username, self._password
-                )
-            }
+            return request
 
-        def first_request():
-            _LOGGER.debug("GET %s with headers=%s", url, headers)
-            response = requests.get(url, headers=headers)
-            return response
+        return await self._send_async(digest_uri, request_type, request_builder)
 
-        response = await self._hass.async_add_executor_job(first_request)
-
-        if response.status_code == 401:
-            self._auth_data = parse_auth_data_from_response(response)
-            headers = {
-                "Authorization": create_auth_header(
-                    "GET", self._auth_data, digest_uri, self._username, self._password
-                )
-            }
-
-            def second_request():
-                _LOGGER.debug("GET %s with headers=%s", url, headers)
-                response = requests.get(url, headers=headers)
-                return response
-
-            response = await self._hass.async_add_executor_job(second_request)
-
-        if response.status_code != 200:
-            request_string = f"GET {url}"
-            raise Exception(
-                f"Request {request_string} failed with "
-                f"status code {response.status_code} "
-                f"and response {response.text}"
-            )
-
-        return response
-
-    # TODO: Refactor to one shared "request" method for GET and POST
-    async def post_json(
-        self, digest_uri: str, headers: dict[str, str] = None, payload: object = None
-    ) -> Response:
+    async def post_json(self, digest_uri: str, payload: object = None) -> Response:
         """POST request with JSON data"""
+        request_type = POST
+
+        def request_builder(url, headers) -> Callable:
+            def request():
+                _LOGGER.debug("%s %s with headers=%s", POST, url, headers)
+                return requests.post(
+                    url, headers=headers, json=payload, timeout=REQUEST_TIMEOUT
+                )
+
+            return request
+
+        return await self._send_async(digest_uri, request_type, request_builder)
+
+    async def _send_async(
+        self, digest_uri: str, request_type: str, request_builder: Callable
+    ):
         url = f"{self._host}{digest_uri}"
 
-        response = None
+        headers = self._create_headers(digest_uri, request_type)
 
-        if self._auth_data is not None:
-            headers = {
-                "Authorization": create_auth_header(
-                    "POST", self._auth_data, digest_uri, self._username, self._password
-                )
-            }
-
-        def first_request():
-            _LOGGER.debug("POST %s with headers=%s", url, headers)
-            response = requests.post(url, headers=headers, json=payload)
-            return response
-
-        response = await self._hass.async_add_executor_job(first_request)
+        response: Response = await self._hass.async_add_executor_job(
+            request_builder(url, headers)
+        )
 
         if response.status_code == 401:
             self._auth_data = parse_auth_data_from_response(response)
-            headers = {
-                "Authorization": create_auth_header(
-                    "POST", self._auth_data, digest_uri, self._username, self._password
-                )
-            }
+            headers = self._create_headers(digest_uri, request_type)
 
-            def second_request():
-                _LOGGER.debug("POST %s with headers=%s", url, headers)
-                response = requests.post(url, headers=headers, json=payload)
-                return response
-
-            response = await self._hass.async_add_executor_job(second_request)
-
-        if response.status_code != 200:
-            request_string = f"GET {url}"
-            raise Exception(
-                f"Request {request_string} failed with "
-                f"status code {response.status_code} "
-                f"and response {response.text}"
+            response = await self._hass.async_add_executor_job(
+                request_builder(url, headers)
             )
 
+        response.raise_for_status()
         return response
+
+    def _create_headers(self, digest_uri: str, request_type: str):
+        headers = {}
+        if self._auth_data:
+            headers = {
+                "Authorization": create_auth_header(
+                    request_type,
+                    self._auth_data,
+                    digest_uri,
+                    self._username,
+                    self._password,
+                )
+            }
+        return headers
 
 
 def create_auth_header(
@@ -156,11 +131,11 @@ def create_auth_header(
             f"cnonce={cnonce}"
         )
     else:
-        raise Exception(f'Algorithm "{algorithm}" not supported')
+        raise ValueError(f'Algorithm "{algorithm}" not supported')
     return auth_header
 
 
-def parse_auth_data_from_response(response) -> dict[str, str]:
+def parse_auth_data_from_response(response: Response) -> dict[str, str]:
     """Extract auth data from response"""
     auth_data = {}
     auth_data_string = response.headers["X-WWW-Authenticate"]
@@ -176,6 +151,6 @@ def parse_auth_data_from_response(response) -> dict[str, str]:
 def parse_parameter_from_auth_data(parameter: str, auth_data_string: str) -> str:
     """Extract a parameter from an auth data string"""
     regex_pattern = f"{parameter}=[^,]+"
-    result = re.findall(regex_pattern, auth_data_string)
+    result: list[str] = re.findall(regex_pattern, auth_data_string)
     value = result[0].replace(parameter, "").replace("=", "").replace('"', "")
     return value
