@@ -61,7 +61,7 @@ class BatteryPlanner:
         await self.get_active_charge_plan(refresh=True)
 
     # TODO: Add a discharge service, just like the charge service
-    async def charge(self, battery_state_of_charge: int, power: int) -> None:
+    async def charge(self, battery_state_of_charge: float, power: int) -> None:
         """Charge the battery now"""
         charge_plan = ChargePlan()
         current_hour = datetime.now().hour

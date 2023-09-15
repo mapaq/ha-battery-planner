@@ -114,7 +114,7 @@ async def async_setup(hass: HomeAssistant, hass_config: Config) -> bool:
 
     async def service_call_charge(service_call):
         """Charge the battery now"""
-        battery_soc: int = service_call.data.get("battery_soc", 0)
+        battery_soc: float = service_call.data.get("battery_soc", 0.0)
         power: int = service_call.data.get("power", 4000)
         _LOGGER.debug("%s: service_call_charge", DOMAIN)
         await battery_planner.charge(battery_soc, power)
