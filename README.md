@@ -25,9 +25,9 @@ battery_planner:
   # The minimum allowed state of charge (SoC) in percent as in integer number (5 = 5%)
   lower_soc_limit: 5
   # The maximum allowed power when charging (W)
-  max_charge_power: 1000
+  max_charge_power: 2500
   # The maximum allowed power when discharging (W)
-  max_discharge_power: 2000
+  max_discharge_power: 5000
 
 sensor:
   - platform: battery_planner
@@ -51,7 +51,7 @@ reschedule_battery:
         export_prices_today: "{{ state_attr('sensor.electricity_price_export', 'today') }}"
         export_prices_tomorrow: "{{ state_attr('sensor.electricity_price_export', 'tomorrow') }}"
         # The cost of cycling one kWh of energy in the battery (battery cost / capacity (kWh) / lifetime charge cycles)
-        battery_cycle_cost: 83
+        battery_cycle_cost: 80
         # Extra price margin to add on top import price + battery cycle cost that the diff between import and export must exceed
         price_margin: 10
         # If no charge cycles can be made and the battery is empty, charge the battery if import price is below this threshold
