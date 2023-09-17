@@ -264,13 +264,12 @@ class Planner:
                 inital_battery.get_average_charge_cost(),
             )
 
+            # Remove all or some of the first charge hours
             while (
                 not inital_battery.is_empty()
                 and charge_hour
                 and charge_hour.get_power() <= 0
             ):
-                # Remove all or some of the first charge hours,
-                # since the battery was already charged
                 power = min(
                     charge_hour.get_power() + inital_battery.get_available_energy(),
                     0,

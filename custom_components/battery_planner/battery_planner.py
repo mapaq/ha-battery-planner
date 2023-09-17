@@ -132,6 +132,8 @@ class BatteryPlanner:
         battery.set_soc(battery_state_of_charge)
 
         next_hour = (datetime.now() + timedelta(hours=1)).hour
+        if next_hour == 0:
+            next_hour = 24
 
         charge_plan = planner.create_price_arbitrage_plan(
             battery,
