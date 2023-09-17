@@ -103,8 +103,7 @@ class TestPlanner:
             data["export"],
         )
         assert (
-            charge_plan.expected_yield()
-            - battery_one_kw_one_kwh.get_average_charge_cost()
+            charge_plan.expected_yield() - data["average_charge_cost"][0]
             == data["yield"][0]
         ), f"\n{charge_plan}"
         if "plan" in data:
@@ -146,12 +145,14 @@ class TestPlanner:
             long_price_series_start_on_hour_21,
             long_price_series_start_hour_18_soc_90,
             long_price_series_start_hour_21_soc_10,
+            long_price_series_start_hour_17_soc_80,
         ],
     )
     def test_ignore_passed_hours(self, battery_one_kw_one_kwh: Battery, data):
         battery: Battery = battery_one_kw_one_kwh
         start_hour = data["start_hour"]
         cycle_cost = 0
+        price_margin = 0
         if "battery" in data:
             batt = data["battery"]
             battery = Battery(
@@ -165,8 +166,10 @@ class TestPlanner:
 
             if "cycle_cost" in data["battery"]:
                 cycle_cost = data["battery"]["cycle_cost"]
+        if "price_margin" in data:
+            price_margin = data["price_margin"]
 
-        planner = Planner(cycle_cost, 0, 0)
+        planner = Planner(cycle_cost, price_margin, 0)
         charge_plan: ChargePlan = planner.create_price_arbitrage_plan(
             battery, data["import"], data["export"], start_hour
         )
@@ -196,8 +199,8 @@ class TestPlanner:
         self._verify_plan(data, charge_plan)
 
     def _verify_plan(self, data, charge_plan: ChargePlan):
+        assert charge_plan.len() == len(data["plan"]), f"\n{charge_plan}"
         assert charge_plan.expected_yield() == data["yield"], f"\n{charge_plan}"
-        assert charge_plan.len() == len(data["plan"])
         if "plan" in data:
             for hour, power in enumerate(data["plan"]):
                 assert charge_plan.get_by_index(hour).get_power() == power

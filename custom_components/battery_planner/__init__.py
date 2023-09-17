@@ -119,6 +119,12 @@ async def async_setup(hass: HomeAssistant, hass_config: Config) -> bool:
         _LOGGER.debug("%s: service_call_charge", DOMAIN)
         await battery_planner.charge(battery_soc, power)
 
+    # TODO: Call refresh from a script at HA startup
+    # Provide, all details just as for reschedule, but obnly refresh and update the sensor
+    # Need prices, battery SoC, battery average charge price (stored in sensor?)
+    # Calculate expected yield after the refresh
+
+    # Maybe the prices shall be stored in the sensor instead, and only updated when calling the reschedule service?
     async def service_call_refresh(service_call):
         """Refresh the sensor"""
         _LOGGER.debug("%s: service_call_refresh", DOMAIN)

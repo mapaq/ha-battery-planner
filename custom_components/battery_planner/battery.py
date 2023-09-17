@@ -171,13 +171,13 @@ class Battery:
         self._energy_watthours -= discharge_power
         return int(discharge_power)
 
-    def remaining_energy_below_upper_soc_limit(self):
+    def remaining_energy_below_upper_soc_limit(self) -> int:
         """The remaining amount of energy below upper soc limit"""
         return max(
             0, int((self._capacity * self._upper_soc_limit) - self._energy_watthours)
         )
 
-    def remaining_energy_above_lower_soc_limit(self):
+    def remaining_energy_above_lower_soc_limit(self) -> int:
         """The remaining amount of energy above lower soc limit"""
         return max(
             0, int(self._energy_watthours - (self._capacity * self._lower_soc_limit))

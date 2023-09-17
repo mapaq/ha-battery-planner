@@ -52,33 +52,57 @@ class Planner:
 
         Returns a plan with 0 W for all hours if the return is to low"""
 
+        _LOGGER.debug("Creating charge plan")
+        _LOGGER.debug(
+            "Battery average charge cost = %s", battery.get_average_charge_cost()
+        )
+
+        inital_battery = battery.clone()
+
+        battery_already_charged = False
+        if not battery.is_empty():
+            battery.set_soc(battery.get_lower_soc_limit())
+            battery_already_charged = True
+
+        charge_plan = self._create_new_plan(
+            battery, import_prices, export_prices, start_hour
+        )
+
+        if battery_already_charged:
+            self._discharge_at_beginning_or_remove_planned_charging(
+                inital_battery, charge_plan
+            )
+
+        if charge_plan.is_empty_plan():
+            self._charge_if_price_is_below_threshold(inital_battery, charge_plan)
+
+        return charge_plan
+
+    def _create_new_plan(
+        self,
+        battery: Battery,
+        import_prices: list[float],
+        export_prices: list[float],
+        start_hour: int,
+    ):
         import_prices = import_prices[start_hour:]
         export_prices = export_prices[start_hour:]
+
         charge_plan = _empty_charge_plan(
             _map_prices_to_hour(import_prices, export_prices, start_hour)
         )
         initial_battery = battery.clone()
 
+        expected_yield = charge_plan.expected_yield()
         self._charge_low_and_discharge_high(charge_plan.get_hours_list(), battery)
-        self._find_and_fill_gaps(charge_plan.get_hours_list(), initial_battery)
 
-        if charge_plan.is_empty_plan():
-            self._charge_if_price_is_below_threshold(battery, charge_plan)
+        while expected_yield != charge_plan.expected_yield():
+            expected_yield = charge_plan.expected_yield()
+            self._find_and_fill_gaps(
+                charge_plan.get_hours_list(), initial_battery.clone()
+            )
 
         return charge_plan
-
-    def _charge_if_price_is_below_threshold(
-        self, battery: Battery, charge_plan: ChargePlan
-    ):
-        print(battery)
-        for hour in sorted(
-            charge_plan.get_hours_list(), key=lambda h: h.get_import_price()
-        ):
-            if (
-                hour.get_import_price() < self._low_price_threshold
-                and not battery.is_full()
-            ):
-                hour.set_power(battery.charge_max_power_for_one_hour(hour))
 
     def _charge_low_and_discharge_high(
         self,
@@ -166,8 +190,8 @@ class Planner:
                     discharge_hour.get_index() < last_charged_hour_index
                 )
             if (
-                (battery.remaining_energy_above_lower_soc_limit() > 0)
-                and (discharge_hour.get_export_price() > average_charge_cost)
+                (not battery.is_empty())
+                and discharge_hour.get_export_price() > average_charge_cost
                 and discharge_comes_after_last_charge
             ):
                 discharge_hour.set_power(battery.discharge_max_power_for_one_hour())
@@ -219,6 +243,58 @@ class Planner:
         if last_charge_index < last_discharge_index < len(charge_hours):
             hours = charge_hours[last_discharge_index + 1 :]
             self._charge_low_and_discharge_high(hours, battery.empty_clone(True))
+
+    def _discharge_at_beginning_or_remove_planned_charging(
+        self, inital_battery, charge_plan
+    ):
+        charge_hour = charge_plan.get_first_active_hour()
+
+        # Verify that the hour is set to be charging
+        if charge_hour and charge_hour.get_power() < 0:
+            # Discharge the battery before the first charge hour
+            highest_export_first: list[ChargeHour] = sorted(
+                charge_plan.get_hours_list()[: charge_plan.index_of(charge_hour)],
+                key=lambda hour: hour.get_export_price(),
+                reverse=True,
+            )
+            self._discharge_at_highest_priced_hours(
+                highest_export_first,
+                -1,
+                inital_battery,
+                inital_battery.get_average_charge_cost(),
+            )
+
+            while (
+                not inital_battery.is_empty()
+                and charge_hour
+                and charge_hour.get_power() <= 0
+            ):
+                # Remove all or some of the first charge hours,
+                # since the battery was already charged
+                power = min(
+                    charge_hour.get_power() + inital_battery.get_available_energy(),
+                    0,
+                )
+                inital_battery.discharge(
+                    min(
+                        charge_hour.get_absolute_power(),
+                        inital_battery.get_available_energy(),
+                    )
+                )
+                charge_hour.set_power(power)
+                charge_hour = charge_plan.get_next_after(charge_hour)
+
+    def _charge_if_price_is_below_threshold(
+        self, battery: Battery, charge_plan: ChargePlan
+    ):
+        for hour in sorted(
+            charge_plan.get_hours_list(), key=lambda h: h.get_import_price()
+        ):
+            if (
+                hour.get_import_price() < self._low_price_threshold
+                and not battery.is_full()
+            ):
+                hour.set_power(battery.charge_max_power_for_one_hour(hour))
 
 
 def _map_prices_to_hour(

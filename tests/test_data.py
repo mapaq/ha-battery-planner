@@ -37,7 +37,7 @@ short_price_series_with_one_cycle_battery_charged_3 = {
 short_price_series_with_one_cycle_battery_charged_4 = {
     "import": [5.0, 2.0, 6.0, 4.0],
     "export": [4.0, 1.0, 5.0, 1.0],
-    "yield": [4.0],  # 4.0 - 2.0 + 5.0 - 3.0
+    "yield": [4.0],  # - 3.0 + 4.0 - 2.0 + 5.0
     "plan": [1000, -1000, 1000, 0],
     "battery_energy": [1000],
     "average_charge_cost": [3.0],
@@ -929,35 +929,162 @@ long_price_series_start_hour_21_soc_10 = {
     ],
 }
 
-"""
-2023-09-07T18:00:00: {'Index': 18, 'Hour': '2023-09-07T18:00:00', 'Import price': 299.61, 'Export price': 174.29, 'Power': 2160}
-2023-09-07T19:00:00: {'Index': 19, 'Hour': '2023-09-07T19:00:00', 'Import price': 349.92, 'Export price': 214.54, 'Power': 4000}
-2023-09-07T20:00:00: {'Index': 20, 'Hour': '2023-09-07T20:00:00', 'Import price': 245.05, 'Export price': 130.64, 'Power': 0}
-2023-09-07T21:00:00: {'Index': 21, 'Hour': '2023-09-07T21:00:00', 'Import price': 131.21, 'Export price': 39.57, 'Power': 0}
-2023-09-07T22:00:00: {'Index': 22, 'Hour': '2023-09-07T22:00:00', 'Import price': 123.8, 'Export price': 33.64, 'Power': -2160}
-2023-09-07T23:00:00: {'Index': 23, 'Hour': '2023-09-07T23:00:00', 'Import price': 119.78, 'Export price': 30.42, 'Power': -4000}
-2023-09-08T00:00:00: {'Index': 24, 'Hour': '2023-09-08T00:00:00', 'Import price': 133.39, 'Export price': 41.31, 'Power': 0}
-2023-09-08T01:00:00: {'Index': 25, 'Hour': '2023-09-08T01:00:00', 'Import price': 128.7, 'Export price': 37.56, 'Power': 0}
-2023-09-08T02:00:00: {'Index': 26, 'Hour': '2023-09-08T02:00:00', 'Import price': 127.12, 'Export price': 36.3, 'Power': 0}
-2023-09-08T03:00:00: {'Index': 27, 'Hour': '2023-09-08T03:00:00', 'Import price': 126.55, 'Export price': 35.84, 'Power': 0}
-2023-09-08T04:00:00: {'Index': 28, 'Hour': '2023-09-08T04:00:00', 'Import price': 134.39, 'Export price': 42.11, 'Power': 0}
-2023-09-08T05:00:00: {'Index': 29, 'Hour': '2023-09-08T05:00:00', 'Import price': 239.36, 'Export price': 126.09, 'Power': 0}
-2023-09-08T06:00:00: {'Index': 30, 'Hour': '2023-09-08T06:00:00', 'Import price': 268.59, 'Export price': 149.47, 'Power': 0}
-2023-09-08T07:00:00: {'Index': 31, 'Hour': '2023-09-08T07:00:00', 'Import price': 299.66, 'Export price': 174.33, 'Power': 0}
-2023-09-08T08:00:00: {'Index': 32, 'Hour': '2023-09-08T08:00:00', 'Import price': 283.29, 'Export price': 161.23, 'Power': 0}
-2023-09-08T09:00:00: {'Index': 33, 'Hour': '2023-09-08T09:00:00', 'Import price': 249.85, 'Export price': 134.48, 'Power': 0}
-2023-09-08T10:00:00: {'Index': 34, 'Hour': '2023-09-08T10:00:00', 'Import price': 234.3, 'Export price': 122.04, 'Power': 0}
-2023-09-08T11:00:00: {'Index': 35, 'Hour': '2023-09-08T11:00:00', 'Import price': 223.31, 'Export price': 113.25, 'Power': 0}
-2023-09-08T12:00:00: {'Index': 36, 'Hour': '2023-09-08T12:00:00', 'Import price': 212.32, 'Export price': 104.46, 'Power': 0}
-2023-09-08T13:00:00: {'Index': 37, 'Hour': '2023-09-08T13:00:00', 'Import price': 206.09, 'Export price': 99.47, 'Power': 0}
-2023-09-08T14:00:00: {'Index': 38, 'Hour': '2023-09-08T14:00:00', 'Import price': 208.55, 'Export price': 101.44, 'Power': 0}
-2023-09-08T15:00:00: {'Index': 39, 'Hour': '2023-09-08T15:00:00', 'Import price': 219.96, 'Export price': 110.57, 'Power': 0}
-2023-09-08T16:00:00: {'Index': 40, 'Hour': '2023-09-08T16:00:00', 'Import price': 232.14, 'Export price': 120.31, 'Power': 0}
-2023-09-08T17:00:00: {'Index': 41, 'Hour': '2023-09-08T17:00:00', 'Import price': 261.16, 'Export price': 143.53, 'Power': 0}
-2023-09-08T18:00:00: {'Index': 42, 'Hour': '2023-09-08T18:00:00', 'Import price': 353.35, 'Export price': 217.28, 'Power': 0}
-2023-09-08T19:00:00: {'Index': 43, 'Hour': '2023-09-08T19:00:00', 'Import price': 433.48, 'Export price': 281.38, 'Power': 4000}
-2023-09-08T20:00:00: {'Index': 44, 'Hour': '2023-09-08T20:00:00', 'Import price': 388.91, 'Export price': 245.73, 'Power': 2160}
-2023-09-08T21:00:00: {'Index': 45, 'Hour': '2023-09-08T21:00:00', 'Import price': 138.54, 'Export price': 45.43, 'Power': 0}
-2023-09-08T22:00:00: {'Index': 46, 'Hour': '2023-09-08T22:00:00', 'Import price': 118.01, 'Export price': 29.01, 'Power': 0}
-2023-09-08T23:00:00: {'Index': 47, 'Hour': '2023-09-08T23:00:00', 'Import price': 114.99, 'Export price': 26.59, 'Power': 0}
-"""
+long_price_series_start_hour_17_soc_80 = {
+    "battery": {
+        "capacity": 7700,
+        "max_charge_power": 3500,
+        "max_discharge_power": 7000,
+        "upper_soc_limit": 90,
+        "lower_soc_limit": 10,
+        "soc": 80,
+        "cycle_cost": 83,
+    },
+    "price_margin": 10,
+    "start_hour": 17,
+    "yield": round(
+        (
+            225.61 * 5390
+            - 26.64 * 2660
+            - 24.76 * 3500
+            + 124.26 * 6160
+            - 23.59 * 3500
+            - 23.91 * 2660
+            + 164.1 * 6160
+        )
+        / 1000,
+        2,
+    ),
+    "import": [
+        157.3,
+        154.08,
+        146.32,
+        131.46,
+        144.28,
+        140.2,
+        167.8,
+        174.97,
+        165.19,
+        149.38,
+        132.25,
+        111.88,
+        96.65,
+        64.62,
+        67.46,
+        125.65,
+        144.51,
+        174.6,
+        211.5,
+        280.76,
+        226.11,
+        188.16,
+        170.06,
+        162.61,
+        34.35,
+        33.19,
+        32.31,
+        31.0,
+        26.64,  # charge rest
+        24.76,  # charge max
+        135.82,
+        150.6,
+        154.08,
+        138.55,
+        120.56,
+        75.44,
+        48.24,
+        23.59,  # charge max
+        23.91,  # charge rest
+        34.11,
+        91.0,
+        175.81,
+        203.88,
+        171.65,
+        40.01,
+        37.2,
+        35.74,
+        35.21,
+    ],
+    "export": [
+        126.84,
+        124.26,
+        118.06,
+        106.17,
+        116.42,
+        113.16,
+        135.24,
+        140.98,
+        133.15,
+        120.5,
+        106.8,
+        90.5,
+        78.32,
+        52.7,
+        54.97,
+        101.52,
+        116.61,
+        140.68,
+        170.2,
+        225.61,  # discharge full
+        181.89,
+        151.53,
+        137.05,
+        131.09,
+        28.48,
+        27.55,
+        26.85,
+        25.8,
+        22.31,
+        20.81,
+        109.66,
+        121.48,
+        124.26,  # discharge full
+        111.84,
+        97.45,
+        61.35,
+        39.59,
+        19.87,
+        20.13,
+        28.29,
+        73.8,
+        141.65,
+        164.1,  # discahrge full
+        138.32,
+        33.01,
+        30.76,
+        29.59,
+        29.17,
+    ],
+    "plan": [
+        0,
+        0,
+        5390,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        -2660,
+        -3500,
+        0,
+        0,
+        6160,
+        0,
+        0,
+        0,
+        0,
+        -3500,
+        -2660,
+        0,
+        0,
+        0,
+        6160,
+        0,
+        0,
+        0,
+        0,
+        0,
+    ],
+}

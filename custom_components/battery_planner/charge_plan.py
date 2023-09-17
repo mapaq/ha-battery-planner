@@ -68,6 +68,13 @@ class ChargePlan:
         except IndexError as error:
             raise IndexError(f"Hour with index {index} not found") from error
 
+    def get_next_after(self, charge_hour: ChargeHour) -> ChargeHour | None:
+        """Get the next hour after the provided one"""
+        try:
+            return self.get_by_index(self.index_of(charge_hour) + 1)
+        except IndexError:
+            return None
+
     def index_of(self, charge_hour: ChargeHour) -> int:
         """Get the index of a charge_hour"""
         hour_in_list = self.get_by_dt(charge_hour.get_time())
@@ -79,6 +86,13 @@ class ChargePlan:
             self._schedule.values(), key=lambda hour: hour.get_time()
         )
         return sorted_by_time[-1]
+
+    def get_first_active_hour(self) -> ChargeHour | None:
+        """Return the first hour that has been scheduled with a power level"""
+        for hour in self.get_hours_list():
+            if hour.get_power() != 0:
+                return hour
+        return None
 
     def get_power(self, hour: datetime) -> int:
         """Get the scheduled power value for the given hour

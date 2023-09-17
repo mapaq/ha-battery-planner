@@ -141,4 +141,5 @@ class BatteryScheduleSensor(SensorEntity):
         """Connect to dispatcher listening for entity data notifications."""
         await super().async_added_to_hass()
         await self._update()
+        # TODO: Update by calling a service instead? To provide data at startup.
         async_dispatcher_connect(self._hass, EVENT_NEW_DATA, self._update)
