@@ -149,10 +149,10 @@ class Planner:
                     )
                 if (
                     charge_comes_before_discharge
-                    and self._charge_cost(charge_hour)
+                    and self._total_charge_cost(charge_hour.get_import_price())
                     < discharge_hour.get_export_price()
                     and discharge_hour.get_export_price()
-                    > battery.get_average_charge_cost()
+                    > self._total_charge_cost(battery.get_average_charge_cost())
                     and not battery.is_full()
                     and charge_hour.get_power() == 0
                 ):
@@ -162,12 +162,8 @@ class Planner:
                     last_charged_hour_index = charge_hour.get_index()
         return last_charged_hour_index
 
-    def _charge_cost(self, charge_hour: ChargeHour):
-        return (
-            charge_hour.get_import_price()
-            + self._battery_cycle_cost
-            + self._price_margin
-        )
+    def _total_charge_cost(self, import_price: float):
+        return import_price + self._battery_cycle_cost + self._price_margin
 
     def _discharge_at_highest_priced_hours(
         self,
@@ -191,7 +187,8 @@ class Planner:
                 )
             if (
                 (not battery.is_empty())
-                and discharge_hour.get_export_price() > average_charge_cost
+                and discharge_hour.get_export_price()
+                > self._total_charge_cost(average_charge_cost)
                 and discharge_comes_after_last_charge
             ):
                 discharge_hour.set_power(battery.discharge_max_power_for_one_hour())
@@ -245,7 +242,7 @@ class Planner:
             self._charge_low_and_discharge_high(hours, battery.empty_clone(True))
 
     def _discharge_at_beginning_or_remove_planned_charging(
-        self, inital_battery, charge_plan
+        self, inital_battery: Battery, charge_plan: ChargePlan
     ):
         charge_hour = charge_plan.get_first_active_hour()
 

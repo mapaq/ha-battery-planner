@@ -124,3 +124,11 @@ class ChargeHour:
             return self._export_price
         else:
             return self._import_price
+
+    def is_set_to_charge(self) -> bool:
+        """Return True if the hour is set to charge (power below 0)"""
+        return self._power_watts < 0
+
+    def is_set_to_discharge(self) -> bool:
+        """Return True if the hour is set to discharge (power above 0)"""
+        return self._power_watts > 0

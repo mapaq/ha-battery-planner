@@ -145,7 +145,7 @@ class TestPlanner:
             long_price_series_start_hour_18_soc_90,
             long_price_series_start_hour_21_soc_10,
             long_price_series_start_hour_17_soc_80,
-            # long_price_series_start_hour_15_soc_80,
+            long_price_series_start_hour_15_soc_80,
         ],
     )
     def test_ignore_passed_hours(self, battery_one_kw_one_kwh: Battery, data):

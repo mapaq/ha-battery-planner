@@ -2,6 +2,7 @@
 
 import logging
 from datetime import datetime, time
+from typing import Callable, Any
 
 from .charge_hour import ChargeHour
 
@@ -17,6 +18,14 @@ class ChargePlan:
     # The key is an hour represented as datetime in ISO string format
     # {"2023-08-20T00:00:00": ChargeHour object}
     _schedule: dict[str, ChargeHour]
+
+    @classmethod
+    def from_hours_list(cls, hours: list[ChargeHour]):
+        """Create a ChargePlan object from a list of ChargeHour"""
+        plan = cls()
+        for hour in hours:
+            plan.add_charge_hour(hour)
+        return plan
 
     def __init__(self):
         self._schedule = {}
@@ -68,9 +77,20 @@ class ChargePlan:
         except IndexError as error:
             raise IndexError(f"Hour with index {index} not found") from error
 
-    def get_next_after(self, charge_hour: ChargeHour) -> ChargeHour | None:
+    def get_next_after(
+        self,
+        charge_hour: ChargeHour,
+        filter_function: Callable[[ChargeHour], bool] | None = None,
+    ) -> ChargeHour | None:
         """Get the next hour after the provided one"""
         try:
+            if filter_function:
+                count = 0
+                while True:
+                    count += 1
+                    next_hour = self.get_by_index(self.index_of(charge_hour) + count)
+                    if filter_function(next_hour):
+                        return next_hour
             return self.get_by_index(self.index_of(charge_hour) + 1)
         except IndexError:
             return None
@@ -79,6 +99,13 @@ class ChargePlan:
         """Get the index of a charge_hour"""
         hour_in_list = self.get_by_dt(charge_hour.get_time())
         return self.get_hours_list().index(hour_in_list)
+
+    def get_first(self) -> ChargeHour:
+        """Get the first hour in charge plan"""
+        sorted_by_time = sorted(
+            self._schedule.values(), key=lambda hour: hour.get_time()
+        )
+        return sorted_by_time[0]
 
     def get_last(self) -> ChargeHour:
         """Get the last hour in charge plan"""
@@ -91,6 +118,20 @@ class ChargePlan:
         """Return the first hour that has been scheduled with a power level"""
         for hour in self.get_hours_list():
             if hour.get_power() != 0:
+                return hour
+        return None
+
+    def get_first_charging_hour(self) -> ChargeHour | None:
+        """Return the first hour that has been scheduled with a power level below 0"""
+        for hour in self.get_hours_list():
+            if hour.get_power() < 0:
+                return hour
+        return None
+
+    def get_first_discharging_hour(self) -> ChargeHour | None:
+        """Return the first hour that has been scheduled with a power level above 0"""
+        for hour in self.get_hours_list():
+            if hour.get_power() > 0:
                 return hour
         return None
 
@@ -108,9 +149,36 @@ class ChargePlan:
         """
         self.get_by_dt(hour).set_power(power)
 
-    def get_hours_list(self) -> list[ChargeHour]:
+    def get_between(
+        self,
+        hour1: ChargeHour,
+        hour2: ChargeHour,
+        include_first: bool = False,
+        include_last: bool = False,
+    ) -> list[ChargeHour]:
+        """Get hours between the two given hours"""
+        hours: list[ChargeHour] = []
+        if include_first:
+            hours.append(hour1)
+        for hour in self.get_hours_list():
+            if hour1.get_time() < hour.get_time() < hour2.get_time():
+                hours.append(hour)
+        if include_last:
+            hours.append(hour2)
+        return hours
+
+    def get_hours_list(
+        self,
+        filter_function: Callable[[ChargeHour], bool] | None = None,
+        sort_function: Callable[[ChargeHour], Any] | None = None,
+    ) -> list[ChargeHour]:
         """Get all scheduled hours as a list"""
-        return list(self._schedule.values())
+        hours = list(self._schedule.values())
+        if filter_function:
+            hours = list(filter(filter_function, hours))
+        if sort_function:
+            hours = sorted(hours, key=sort_function)
+        return hours
 
     def get_hours_dict(self) -> dict[str, ChargeHour]:
         """Get all scheduled hours"""
