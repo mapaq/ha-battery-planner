@@ -190,6 +190,8 @@ class Battery:
         previous_charge_cost = (
             self._average_charge_cost_per_kwh * self._energy_watthours
         )
+        if (self._energy_watthours + new_energy_watthours) == 0:
+            return 0
         new_average_charge_cost = (previous_charge_cost + new_charge_cost) / (
             self._energy_watthours + new_energy_watthours
         )
