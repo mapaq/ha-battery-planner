@@ -1,12 +1,14 @@
 """Planner tests module"""
 
 from datetime import datetime, time
+from typing import Any
 
 import pytest
 
 from custom_components.battery_planner.planner import Planner
 from custom_components.battery_planner.battery import Battery
 from custom_components.battery_planner.charge_plan import ChargePlan
+from custom_components.battery_planner.charge_hour import ChargeHour
 from .fixtures import *
 from .test_data import *
 
@@ -78,7 +80,7 @@ class TestPlanner:
             data["import"],
             data["export"],
         )
-        self._verify_plan(data, charge_plan)
+        verify_plan(data, charge_plan)
 
     @pytest.mark.parametrize(
         "data",
@@ -93,22 +95,19 @@ class TestPlanner:
         self,
         planner: Planner,
         battery_one_kw_one_kwh: Battery,
-        data: dict[str, list[float]],
+        data: dict[str, Any],
     ):
-        battery_one_kw_one_kwh.set_energy(int(data["battery_energy"][0]))
-        battery_one_kw_one_kwh.set_average_charge_cost(data["average_charge_cost"][0])
+        battery_one_kw_one_kwh.set_energy(int(data["battery_energy"]))
+        battery_one_kw_one_kwh.set_average_charge_cost(
+            float(data["average_charge_cost"])
+        )
         charge_plan: ChargePlan = planner.create_price_arbitrage_plan(
             battery_one_kw_one_kwh,
             data["import"],
             data["export"],
         )
-        assert (
-            charge_plan.expected_yield() - data["average_charge_cost"][0]
-            == data["yield"][0]
-        ), f"\n{charge_plan}"
-        if "plan" in data:
-            for hour, power in enumerate(data["plan"]):
-                assert charge_plan.get_by_index(hour).get_power() == power
+        data["yield"] = data["yield"] + data["average_charge_cost"]
+        verify_plan(data, charge_plan)
 
     @pytest.mark.parametrize(
         "data",
@@ -122,7 +121,7 @@ class TestPlanner:
             data["import"],
             data["export"],
         )
-        self._verify_plan(data, charge_plan)
+        verify_plan(data, charge_plan)
 
     @pytest.mark.parametrize(
         "data",
@@ -136,7 +135,7 @@ class TestPlanner:
             data["import"],
             data["export"],
         )
-        self._verify_plan(data, charge_plan)
+        verify_plan(data, charge_plan)
 
     @pytest.mark.parametrize(
         "data",
@@ -146,11 +145,12 @@ class TestPlanner:
             long_price_series_start_hour_18_soc_90,
             long_price_series_start_hour_21_soc_10,
             long_price_series_start_hour_17_soc_80,
+            # long_price_series_start_hour_15_soc_80,
         ],
     )
     def test_ignore_passed_hours(self, battery_one_kw_one_kwh: Battery, data):
         battery: Battery = battery_one_kw_one_kwh
-        start_hour = data["start_hour"]
+        start_hour = int(data["start_hour"])
         cycle_cost = 0
         price_margin = 0
         if "battery" in data:
@@ -169,12 +169,19 @@ class TestPlanner:
         if "price_margin" in data:
             price_margin = data["price_margin"]
 
+        if "charge_plan" in data:
+            test_data_charge_plan = create_charge_plan(data["charge_plan"])
+            data["yield"] = test_data_charge_plan.expected_yield()
+            data["import"] = extract_import_prices(test_data_charge_plan)
+            data["export"] = extract_export_prices(test_data_charge_plan)
+            data["powers"] = extract_powers(test_data_charge_plan, start_hour)
+
         planner = Planner(cycle_cost, price_margin, 0)
         charge_plan: ChargePlan = planner.create_price_arbitrage_plan(
             battery, data["import"], data["export"], start_hour
         )
         assert charge_plan.get_by_index(0).get_time().hour == start_hour
-        self._verify_plan(data, charge_plan)
+        verify_plan(data, charge_plan)
 
     @pytest.mark.parametrize(
         "data",
@@ -196,11 +203,50 @@ class TestPlanner:
         charge_plan = planner.create_price_arbitrage_plan(
             battery, data["import"], data["export"]
         )
-        self._verify_plan(data, charge_plan)
+        verify_plan(data, charge_plan)
 
-    def _verify_plan(self, data, charge_plan: ChargePlan):
-        assert charge_plan.len() == len(data["plan"]), f"\n{charge_plan}"
-        assert charge_plan.expected_yield() == data["yield"], f"\n{charge_plan}"
-        if "plan" in data:
-            for hour, power in enumerate(data["plan"]):
-                assert charge_plan.get_by_index(hour).get_power() == power
+
+def verify_plan(data, charge_plan: ChargePlan):
+    if "powers" in data:
+        error_message = f'\nExpected plan:\n{data["powers"]}\nActual plan:\n{extract_powers(charge_plan, 0)}'
+        for hour, power in enumerate(data["powers"]):
+            assert (
+                charge_plan.get_by_index(hour).get_power() == power
+            ), f"{error_message}\n\n{charge_plan}"
+    assert charge_plan.len() == len(data["powers"]), f"\n{charge_plan}"
+    assert charge_plan.expected_yield() == data["yield"], f"\n{charge_plan}"
+
+
+def create_charge_plan(charge_plan_data: list[dict[str, int | float]]) -> ChargePlan:
+    charge_plan = ChargePlan()
+    for hour_data in charge_plan_data:
+        charge_plan.add_charge_hour(
+            ChargeHour(
+                hour=int(hour_data["Index"]),
+                import_price=float(hour_data["Import"]),
+                export_price=float(hour_data["Export"]),
+                power=int(hour_data["Power"]),
+            )
+        )
+    return charge_plan
+
+
+def extract_import_prices(charge_plan: ChargePlan) -> list[float]:
+    prices = []
+    for h in charge_plan.get_hours_list():
+        prices.append(h.get_import_price())
+    return prices
+
+
+def extract_export_prices(charge_plan: ChargePlan) -> list[float]:
+    prices = []
+    for h in charge_plan.get_hours_list():
+        prices.append(h.get_export_price())
+    return prices
+
+
+def extract_powers(charge_plan: ChargePlan, start_hour: int) -> list[int]:
+    powers = []
+    for h in charge_plan.get_hours_list():
+        powers.append(h.get_power())
+    return powers[start_hour:]

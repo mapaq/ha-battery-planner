@@ -4,71 +4,71 @@ short_price_series_with_1_cycle = {
     "import": [3.0, 2.0, 4.0, 4.0],
     "export": [1.0, 1.0, 3.0, 1.0],
     "yield": 1.0,
-    "plan": [0, -1000, 1000, 0],
+    "powers": [0, -1000, 1000, 0],
 }
 
 short_price_series_with_one_cycle_battery_charged_1 = {
     "import": [3.0, 2.0, 4.0, 4.0],
     "export": [1.0, 1.0, 3.0, 1.0],
-    "yield": [2.0],
-    "plan": [0, 0, 1000, 0],
-    "battery_energy": [1000],
-    "average_charge_cost": [1.0],
+    "yield": 2.0,
+    "powers": [0, 0, 1000, 0],
+    "battery_energy": 1000,
+    "average_charge_cost": 1.0,
 }
 
 short_price_series_with_one_cycle_battery_charged_2 = {
     "import": [5.0, 2.0, 4.0, 4.0],
     "export": [4.0, 1.0, 3.0, 1.0],
-    "yield": [4.0],  # 4.0 - 1.0 - 2.0 + 3.0
-    "plan": [1000, -1000, 1000, 0],
-    "battery_energy": [1000],
-    "average_charge_cost": [1.0],
+    "yield": 4.0,  # 4.0 - 1.0 - 2.0 + 3.0
+    "powers": [1000, -1000, 1000, 0],
+    "battery_energy": 1000,
+    "average_charge_cost": 1.0,
 }
 
 short_price_series_with_one_cycle_battery_charged_3 = {
     "import": [5.0, 2.0, 6.0, 4.0],
     "export": [4.0, 1.0, 5.0, 1.0],
-    "yield": [1.0],  # 5.0 - 4.0
-    "plan": [0, 0, 1000, 0],
-    "battery_energy": [1000],
-    "average_charge_cost": [4.0],
+    "yield": 1.0,  # 5.0 - 4.0
+    "powers": [0, 0, 1000, 0],
+    "battery_energy": 1000,
+    "average_charge_cost": 4.0,
 }
 
 short_price_series_with_one_cycle_battery_charged_4 = {
     "import": [5.0, 2.0, 6.0, 4.0],
     "export": [4.0, 1.0, 5.0, 1.0],
-    "yield": [4.0],  # - 3.0 + 4.0 - 2.0 + 5.0
-    "plan": [1000, -1000, 1000, 0],
-    "battery_energy": [1000],
-    "average_charge_cost": [3.0],
+    "yield": 4.0,  # - 3.0 + 4.0 - 2.0 + 5.0
+    "powers": [1000, -1000, 1000, 0],
+    "battery_energy": 1000,
+    "average_charge_cost": 3.0,
 }
 
 short_price_series_with_2_cycles = {
     "import": [3.0, 2.0, 4.0, 1.0, 5.0],
     "export": [1.0, 1.0, 3.0, 2.0, 4.0],
     "yield": 4.0,
-    "plan": [0, -1000, 1000, -1000, 1000],
+    "powers": [0, -1000, 1000, -1000, 1000],
 }
 
 short_price_series_with_consecutive_charge = {
     "import": [3.0, 2.0, 1.0, 3.0, 5.0, 6.0, 2.0],
     "export": [1.0, 1.0, 3.0, 2.0, 4.0, 5.0, 1.0],
     "yield": 6.0,
-    "plan": [0, -1000, -1000, 0, 1000, 1000, 0],
+    "powers": [0, -1000, -1000, 0, 1000, 1000, 0],
 }
 
 short_price_series_with_consecutive_charge_battery_two_kw_three_kwh = {
     "import": [3.0, 2.0, 1.0, 3.0, 5.0, 6.0, 2.0],
     "export": [1.0, 1.0, 3.0, 2.0, 4.0, 5.0, 1.0],
     "yield": 10.0,
-    "plan": [0, -1000, -2000, 0, 1000, 2000, 0],
+    "powers": [0, -1000, -2000, 0, 1000, 2000, 0],
 }
 
 short_price_series_with_low_prices = {
     "import": [15, 16, 14, 16, 17, 13, 15],
     "export": [10, 9, 8, 11, 12, 7, 10],
     "yield": -27,
-    "plan": [0, 0, -1000, 0, 0, -1000, 0],
+    "powers": [0, 0, -1000, 0, 0, -1000, 0],
     "low_price_threshold": 20,
     "battery": {
         "capacity": 2000,
@@ -108,7 +108,7 @@ short_price_series_with_3_cycles = {
         125.28,  # 3
     ],
     "yield": round(-97.58 + 110.24 - 71.98 + 94.33 - 93.67 + 125.28, 2),  # = 66.62
-    "plan": [
+    "powers": [
         -1000,  # 1
         0,
         1000,  # 1
@@ -152,7 +152,7 @@ short_price_series_with_3_cycles_start_at_04 = {
         125.28,  # 2
     ],
     "yield": round(-71.98 + 94.33 - 93.67 + 125.28, 2),
-    "plan": [
+    "powers": [
         0,
         -1000,  # 1
         0,
@@ -265,7 +265,7 @@ long_price_series_with_3_cycles = {
         74.57,
     ],
     "yield": 66.62,
-    "plan": [
+    "powers": [
         0,
         0,
         0,
@@ -419,7 +419,7 @@ long_price_series_with_3_cycles_2 = {
         34.39,
     ],
     "yield": (-31.24 + 35.11 - 19.12 + 134.85 - 96.45 + 219.92),
-    "plan": [
+    "powers": [
         0,
         0,
         0,
@@ -595,7 +595,7 @@ long_price_series_start_on_hour_21 = {
         39.54,
         35.5,
     ],
-    "plan": [
+    "powers": [
         0,  # start
         -2160,  # 2
         -4000,  # 1
@@ -749,7 +749,7 @@ long_price_series_start_hour_18_soc_90 = {
         29.01,
         26.59,
     ],
-    "plan": [
+    "powers": [
         2160,
         4000,
         0,
@@ -898,7 +898,7 @@ long_price_series_start_hour_21_soc_10 = {
         29.01,
         26.59,
     ],
-    "plan": [
+    "powers": [
         0,
         -2160,
         -4000,
@@ -1054,7 +1054,7 @@ long_price_series_start_hour_17_soc_80 = {
         29.59,
         29.17,
     ],
-    "plan": [
+    "powers": [
         0,
         0,
         5390,
@@ -1086,5 +1086,69 @@ long_price_series_start_hour_17_soc_80 = {
         0,
         0,
         0,
+    ],
+}
+
+long_price_series_start_hour_15_soc_80 = {
+    "battery": {
+        "capacity": 10000,
+        "max_charge_power": 4000,
+        "max_discharge_power": 8000,
+        "upper_soc_limit": 90,
+        "lower_soc_limit": 10,
+        "soc": 80,
+        "cycle_cost": 83,
+    },
+    "price_margin": 10,
+    "start_hour": 15,
+    "charge_plan": [
+        {"Index": 0, "Import": 18.38, "Export": 15.7, "Power": 0},
+        {"Index": 1, "Import": 17.66, "Export": 15.13, "Power": 0},
+        {"Index": 2, "Import": 17.5, "Export": 15.0, "Power": 0},
+        {"Index": 3, "Import": 17.49, "Export": 14.99, "Power": 0},
+        {"Index": 4, "Import": 17.51, "Export": 15.01, "Power": 0},
+        {"Index": 5, "Import": 18.38, "Export": 15.7, "Power": 0},
+        {"Index": 6, "Import": 20.26, "Export": 17.21, "Power": 0},
+        {"Index": 7, "Import": 23.41, "Export": 19.73, "Power": 0},
+        {"Index": 8, "Import": 24.84, "Export": 20.87, "Power": 0},
+        {"Index": 9, "Import": 22.2, "Export": 18.76, "Power": 0},
+        {"Index": 10, "Import": 20.84, "Export": 17.67, "Power": 0},
+        {"Index": 11, "Import": 20.21, "Export": 17.17, "Power": 0},
+        {"Index": 12, "Import": 20.1, "Export": 17.08, "Power": 0},
+        {"Index": 13, "Import": 19.59, "Export": 16.67, "Power": 0},
+        {"Index": 14, "Import": 19.46, "Export": 16.57, "Power": 0},
+        {"Index": 15, "Import": 19.84, "Export": 16.87, "Power": 0},
+        {"Index": 16, "Import": 20.24, "Export": 17.19, "Power": 0},
+        {"Index": 17, "Import": 20.59, "Export": 17.47, "Power": 0},
+        {"Index": 18, "Import": 20.59, "Export": 17.47, "Power": 0},
+        {"Index": 19, "Import": 20.31, "Export": 17.25, "Power": 0},
+        {"Index": 20, "Import": 19.62, "Export": 16.7, "Power": 0},
+        {"Index": 21, "Import": 18.27, "Export": 15.62, "Power": 0},
+        {"Index": 22, "Import": 17.49, "Export": 14.99, "Power": 0},
+        {"Index": 23, "Import": 16.6, "Export": 14.28, "Power": 0},
+        {"Index": 24, "Import": 15.16, "Export": 13.13, "Power": 0},
+        {"Index": 25, "Import": 15.05, "Export": 13.04, "Power": -1000},
+        {"Index": 26, "Import": 15.31, "Export": 13.25, "Power": 0},
+        {"Index": 27, "Import": 15.76, "Export": 13.61, "Power": 0},
+        {"Index": 28, "Import": 16.4, "Export": 14.12, "Power": 0},
+        {"Index": 29, "Import": 17.49, "Export": 14.99, "Power": 0},
+        {"Index": 30, "Import": 18.91, "Export": 16.13, "Power": 0},
+        {"Index": 31, "Import": 218.0, "Export": 175.4, "Power": 8000},
+        {"Index": 32, "Import": 214.69, "Export": 172.75, "Power": 0},
+        {"Index": 33, "Import": 177.01, "Export": 142.61, "Power": 0},
+        {"Index": 34, "Import": 162.24, "Export": 130.79, "Power": 0},
+        {"Index": 35, "Import": 149.59, "Export": 120.67, "Power": 0},
+        {"Index": 36, "Import": 141.9, "Export": 114.52, "Power": 0},
+        {"Index": 37, "Import": 130.49, "Export": 105.39, "Power": 0},
+        {"Index": 38, "Import": 123.0, "Export": 99.4, "Power": 0},
+        {"Index": 39, "Import": 126.53, "Export": 102.22, "Power": 0},
+        {"Index": 40, "Import": 144.4, "Export": 116.52, "Power": 0},
+        {"Index": 41, "Import": 19.05, "Export": 16.24, "Power": 0},
+        {"Index": 42, "Import": 19.06, "Export": 16.25, "Power": 0},
+        {"Index": 43, "Import": 18.99, "Export": 16.19, "Power": 0},
+        {"Index": 44, "Import": 18.36, "Export": 15.69, "Power": 0},
+        {"Index": 45, "Import": 17.59, "Export": 15.07, "Power": 0},
+        {"Index": 46, "Import": 17.5, "Export": 15.0, "Power": 0},
+        {"Index": 47, "Import": 17.18, "Export": 14.74, "Power": 0},
     ],
 }

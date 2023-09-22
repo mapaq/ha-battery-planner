@@ -20,7 +20,7 @@ class TestChargePlan:
     )
     def test_expected_yield(self, data):
         charge_plan = ChargePlan()
-        for i, power in enumerate(data["plan"]):
+        for i, power in enumerate(data["powers"]):
             charge_plan.add_charge_hour(
                 ChargeHour(i, data["import"][i], data["export"][i], power)
             )
