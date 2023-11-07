@@ -244,41 +244,55 @@ class Planner:
     def _discharge_at_beginning_or_remove_planned_charging(
         self, inital_battery: Battery, charge_plan: ChargePlan
     ):
-        charge_hour = charge_plan.get_first_active_hour()
-
-        # Verify that the hour is set to be charging
-        if charge_hour and charge_hour.get_power() < 0:
-            # Discharge the battery before the first charge hour
-            highest_export_first: list[ChargeHour] = sorted(
-                charge_plan.get_hours_list()[: charge_plan.index_of(charge_hour)],
-                key=lambda hour: hour.get_export_price(),
-                reverse=True,
+        first_charge_hour = charge_plan.get_first_charging_hour()
+        if first_charge_hour:
+            self._discharge_before_hour(inital_battery, charge_plan, first_charge_hour)
+            self._unschedule_charging_equal_to_battery_avalable_energy(
+                inital_battery, charge_plan, first_charge_hour
             )
-            self._discharge_at_highest_priced_hours(
-                highest_export_first,
-                -1,
-                inital_battery,
-                inital_battery.get_average_charge_cost(),
+        else:  # The charge plan is empty
+            self._discharge_before_hour(
+                inital_battery, charge_plan, charge_plan.get_last()
             )
 
-            # Remove all or some of the first charge hours
-            while (
-                not inital_battery.is_empty()
-                and charge_hour
-                and charge_hour.get_power() <= 0
-            ):
-                power = min(
-                    charge_hour.get_power() + inital_battery.get_available_energy(),
-                    0,
+    def _unschedule_charging_equal_to_battery_avalable_energy(
+        self,
+        inital_battery: Battery,
+        charge_plan: ChargePlan,
+        charge_hour: ChargeHour | None,
+    ):
+        while (
+            not inital_battery.is_empty()
+            and charge_hour
+            and charge_hour.get_power() <= 0
+        ):
+            power = min(
+                charge_hour.get_power() + inital_battery.get_available_energy(),
+                0,
+            )
+            inital_battery.discharge(
+                min(
+                    charge_hour.get_absolute_power(),
+                    inital_battery.get_available_energy(),
                 )
-                inital_battery.discharge(
-                    min(
-                        charge_hour.get_absolute_power(),
-                        inital_battery.get_available_energy(),
-                    )
-                )
-                charge_hour.set_power(power)
-                charge_hour = charge_plan.get_next_after(charge_hour)
+            )
+            charge_hour.set_power(power)
+            charge_hour = charge_plan.get_next_after(charge_hour)
+
+    def _discharge_before_hour(
+        self, inital_battery: Battery, charge_plan: ChargePlan, charge_hour: ChargeHour
+    ):
+        highest_export_first: list[ChargeHour] = sorted(
+            charge_plan.get_hours_list()[: charge_plan.index_of(charge_hour)],
+            key=lambda hour: hour.get_export_price(),
+            reverse=True,
+        )
+        self._discharge_at_highest_priced_hours(
+            highest_export_first,
+            -1,
+            inital_battery,
+            inital_battery.get_average_charge_cost(),
+        )
 
     def _charge_if_price_is_below_threshold(
         self, battery: Battery, charge_plan: ChargePlan

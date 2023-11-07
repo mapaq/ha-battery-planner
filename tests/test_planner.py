@@ -146,6 +146,7 @@ class TestPlanner:
             long_price_series_start_hour_21_soc_10,
             long_price_series_start_hour_17_soc_80,
             long_price_series_start_hour_15_soc_80,
+            long_price_series_start_hour_14_soc_90,
         ],
     )
     def test_ignore_passed_hours(self, battery_one_kw_one_kwh: Battery, data):
@@ -163,6 +164,9 @@ class TestPlanner:
                 batt["lower_soc_limit"],
             )
             battery.set_soc(batt["soc"])
+
+            if "average_charge_cost" in data:
+                battery.set_average_charge_cost(float(data["average_charge_cost"]))
 
             if "cycle_cost" in data["battery"]:
                 cycle_cost = data["battery"]["cycle_cost"]
