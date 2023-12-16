@@ -1,11 +1,11 @@
 """Planner tests module"""
 
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 from typing import Any
 
 import pytest
 
-from custom_components.battery_planner.planner import Planner
+from custom_components.battery_planner.planner import Planner, create_empty_plan
 from custom_components.battery_planner.battery import Battery
 from custom_components.battery_planner.charge_plan import ChargePlan
 from custom_components.battery_planner.charge_hour import ChargeHour
@@ -208,6 +208,35 @@ class TestPlanner:
             battery, data["import"], data["export"]
         )
         verify_plan(data, charge_plan)
+
+    def test_create_empty_plan(self):
+        charge_plan = create_empty_plan()
+        assert charge_plan.is_empty_plan()
+
+    def test_create_empty_plan_returns_plan_of_length_48(self):
+        charge_plan = create_empty_plan()
+        assert charge_plan.len() == 48
+
+    def test_create_empty_plan_returns_plan_of_length_48_minus_start_hour(self):
+        charge_plan = create_empty_plan(5)
+        assert charge_plan.len() == 48 - 5
+
+    def test_create_empty_plan_returns_plan_ending_tomorrow_23_00(self):
+        charge_plan = create_empty_plan()
+        tomorrow = datetime.now() + timedelta(days=1)
+        assert charge_plan.get_last().get_time().date() == tomorrow.date()
+        assert charge_plan.get_last().get_time().hour == 23
+
+    def test_create_empty_plan_returns_plan_of_same_length_as_price_array(self):
+        charge_plan = create_empty_plan(0, [0.0] * 20, [0.0] * 20)
+        assert charge_plan.len() == 20
+
+        charge_plan = create_empty_plan(0, [0.0] * 48, [0.0] * 48)
+        assert charge_plan.len() == 48
+
+    def test_create_empty_plan_fails_if_price_arrays_are_of_different_lengths(self):
+        with pytest.raises(ValueError):
+            charge_plan = create_empty_plan(0, [0.0] * 20, [0.0] * 21)
 
 
 def verify_plan(data, charge_plan: ChargePlan):

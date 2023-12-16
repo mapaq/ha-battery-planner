@@ -85,6 +85,39 @@ charge:
       advanced: false
       example: 4000
       default: 4000
+    use_limit:
+      name: Limit power level
+      description: Limit the power to preset max value
+      required: false
+      advanced: false
+      example: false
+      default: true
+
+discharge:
+  name: Discharge
+  description: Discharge the battery now
+  fields:
+    battery_soc:
+      name: Battery State of Charge
+      description: The current state of charge (%) of the battery
+      required: true
+      advanced: false
+      example: 5
+      default: 5
+    power:
+      name: Discharge power
+      description: The power (W) to discharge the battery with
+      required: true
+      advanced: false
+      example: 4000
+      default: 4000
+    use_limit:
+      name: Limit power level
+      description: Limit the power to preset max value
+      required: false
+      advanced: false
+      example: false
+      default: true
 
 refresh:
   name: Refresh

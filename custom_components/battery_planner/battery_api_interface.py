@@ -10,7 +10,7 @@ class BatteryApiInterface(ABC):
 
     @classmethod
     @abstractmethod
-    def __init__(cls, secrets_json: dict[str:str], hass: HomeAssistant):
+    def __init__(cls, secrets_json: dict[str, str], hass: HomeAssistant):
         """Constructor taking secrets data as a json dict"""
 
     @classmethod

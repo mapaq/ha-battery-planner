@@ -88,9 +88,7 @@ class Planner:
         import_prices = import_prices[start_hour:]
         export_prices = export_prices[start_hour:]
 
-        charge_plan = _empty_charge_plan(
-            _map_prices_to_hour(import_prices, export_prices, start_hour)
-        )
+        charge_plan = create_empty_plan(start_hour, import_prices, export_prices)
         initial_battery = battery.clone()
 
         expected_yield = charge_plan.expected_yield()
@@ -307,24 +305,31 @@ class Planner:
                 hour.set_power(battery.charge_max_power_for_one_hour(hour))
 
 
-def _map_prices_to_hour(
-    import_prices: list[float], export_prices: list[float], start_hour: int
-) -> list[ChargeHour]:
-    """Pair prices with correct hour"""
-    prices: list[ChargeHour] = []
+def create_empty_plan(
+    start_hour: int = 0,
+    import_prices: list[float] = [],
+    export_prices: list[float] = [],
+) -> ChargePlan:
+    """Pair prices with correct hour and create a charge plan with no power set"""
+    if len(import_prices) != len(export_prices):
+        raise ValueError(
+            "Price arrays are of different length!\nlen(import_prices) = %s\nlen(export_prices) = %s",
+            len(import_prices),
+            len(export_prices),
+        )
+
+    if not import_prices and not export_prices:
+        plan_length = 48 - start_hour
+        import_prices = [0.0] * plan_length
+        export_prices = [0.0] * plan_length
+
+    charge_plan = ChargePlan()
     for index, import_price in enumerate(import_prices):
-        price = ChargeHour(
+        charge_hour_with_price = ChargeHour(
             hour=index + start_hour,
             import_price=import_price,
             export_price=export_prices[index],
             power=0,
         )
-        prices.append(price)
-    return prices
-
-
-def _empty_charge_plan(charge_hours: list[ChargeHour]) -> ChargePlan:
-    charge_plan = ChargePlan()
-    for charge_hour in charge_hours:
-        charge_plan.add_charge_hour(charge_hour)
+        charge_plan.add_charge_hour(charge_hour_with_price)
     return charge_plan

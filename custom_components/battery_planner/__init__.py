@@ -115,9 +115,18 @@ async def async_setup(hass: HomeAssistant, hass_config: Config) -> bool:
     async def service_call_charge(service_call):
         """Charge the battery now"""
         battery_soc: float = service_call.data.get("battery_soc", 0.0)
+        use_limit: bool = service_call.data.get("use_limit", True)
         power: int = service_call.data.get("power", 4000)
         _LOGGER.debug("%s: service_call_charge", DOMAIN)
-        await battery_planner.charge(battery_soc, power)
+        await battery_planner.charge_now(battery_soc, -power, use_limit)
+
+    async def service_call_discharge(service_call):
+        """Discharge the battery now"""
+        battery_soc: float = service_call.data.get("battery_soc", 0.0)
+        use_limit: bool = service_call.data.get("use_limit", True)
+        power: int = service_call.data.get("power", 4000)
+        _LOGGER.debug("%s: service_call_discharge", DOMAIN)
+        await battery_planner.charge_now(battery_soc, power, use_limit)
 
     # TODO: Call refresh from a script at HA startup
     # Provide, all details just as for reschedule, but obnly refresh and update the sensor
@@ -134,6 +143,7 @@ async def async_setup(hass: HomeAssistant, hass_config: Config) -> bool:
     hass.services.async_register(DOMAIN, "stop", service_call_stop)
     hass.services.async_register(DOMAIN, "clear", service_call_clear)
     hass.services.async_register(DOMAIN, "charge", service_call_charge)
+    hass.services.async_register(DOMAIN, "discharge", service_call_discharge)
     hass.services.async_register(DOMAIN, "refresh", service_call_refresh)
 
     return instance_created

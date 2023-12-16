@@ -11,7 +11,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 from .const import EVENT_NEW_DATA
 from .charge_plan import ChargePlan
 from .charge_hour import ChargeHour
-from .planner import Planner
+from .planner import Planner, create_empty_plan
 from .battery import Battery
 from .battery_api_interface import BatteryApiInterface
 
@@ -49,7 +49,7 @@ class BatteryPlanner:
             _LOGGER.info("Battery was stopped")
         else:
             _LOGGER.error("Failed to stop battery")
-        await self.get_active_charge_plan(refresh=True)
+        await self.refresh()
 
     async def clear(self) -> None:
         """Clear the battery schedule"""
@@ -58,13 +58,16 @@ class BatteryPlanner:
             _LOGGER.info("Battery schedule was cleared")
         else:
             _LOGGER.error("Failed to clear the battery schedule")
-        await self.get_active_charge_plan(refresh=True)
+        await self.refresh()
 
-    # TODO: Add a discharge service, just like the charge service
-    async def charge(self, battery_state_of_charge: float, power: int) -> None:
-        """Charge the battery now"""
-        charge_plan = ChargePlan()
-        current_hour = datetime.now().hour
+    async def charge_now(
+        self, battery_state_of_charge: float, power: int, use_limit: bool
+    ) -> None:
+        """Charge or discharge the battery with provided power, starting immediately"""
+        current_hour: int = datetime.now().hour
+        charge_plan = create_empty_plan(start_hour=current_hour)
+        shall_discharge: bool = power > 0
+
         battery = Battery(
             self._battery.get_capacity(),
             self._battery.get_max_charge_power(),
@@ -74,22 +77,34 @@ class BatteryPlanner:
         )
         battery.set_soc(battery_state_of_charge)
 
-        charge_power = min(battery.get_max_charge_power(), power)
-        charge_plan.add_charge_hour(ChargeHour(current_hour, 0.0, 0.0, charge_power))
+        if use_limit:
+            if shall_discharge:
+                power = min(battery.get_max_discharge_power(), abs(power))
+            else:
+                power = -min(battery.get_max_charge_power(), abs(power))
+
+        charge_plan.add_charge_hour(ChargeHour(current_hour, 0.0, 0.0, power))
 
         next_hour = current_hour + 1
-        while not battery.is_full():
-            charge_hour = ChargeHour(next_hour, 0.0, 0.0, charge_power)
-            charge_hour.set_power(battery.charge(power, charge_hour))
-            charge_plan.add_charge_hour(charge_hour)
-            next_hour += 1
+        if shall_discharge:
+            while not battery.is_empty():
+                charge_hour = ChargeHour(next_hour, 0.0, 0.0, power)
+                charge_hour.set_power(battery.discharge(abs(power)))
+                charge_plan.add_charge_hour(charge_hour)
+                next_hour += 1
+        else:
+            while not battery.is_full():
+                charge_hour = ChargeHour(next_hour, 0.0, 0.0, power)
+                charge_hour.set_power(battery.charge(abs(power), charge_hour))
+                charge_plan.add_charge_hour(charge_hour)
+                next_hour += 1
 
         charge_succeeded = await self._battery_api.schedule_battery(charge_plan)
         if charge_succeeded:
-            _LOGGER.info("Battery started charging with power %s", power)
+            _LOGGER.info("Battery started charging/discharging with power %s", power)
         else:
-            _LOGGER.error("Failed to start charging of the battery")
-        await self.get_active_charge_plan(refresh=True)
+            _LOGGER.error("Failed to start charging/discharging of the battery")
+        await self.refresh()
 
     async def refresh(self) -> None:
         """Refresh the sensor"""
